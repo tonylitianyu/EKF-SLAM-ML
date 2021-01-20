@@ -1,0 +1,3 @@
+#The parametric description of a differential drive robot
+wheel_radius: 0.033     #The radius of the wheels
+wheel_base: 0.16       #The distance between the wheels
