@@ -71,20 +71,77 @@ namespace rigid2d
         double y = 0.0;
     };
 
+
+    /// \brief Normalize a 2-Dimensional Vector
+    /// \param v - the vector to be normalized
+    void normalize(Vector2D & v);
+
+
     /// \brief output a 2 dimensional vector as [xcomponent ycomponent]
-    /// os - stream to output to
-    /// v - the vector to print
+    /// \param os - stream to output to
+    /// \param v - the vector to print
     std::ostream & operator<<(std::ostream & os, const Vector2D & v);
 
     /// \brief input a 2 dimensional vector
     ///   You should be able to read vectors entered as two numbers
     ///   separated by a newline or a space, or entered as [xcomponent, ycomponent]
-    /// is - stream from which to read
-    /// v [out] - output vector
+    /// \param is - stream from which to read
+    /// \param v [out] - output vector
     /// Hint: The following may be useful:
     /// https://en.cppreference.com/w/cpp/io/basic_istream/peek
     /// https://en.cppreference.com/w/cpp/io/basic_istream/get
     std::istream & operator>>(std::istream & is, Vector2D & v);
+
+
+    /// \brief spatial velocity in 2 dimensions
+    class Twist2D
+    {
+    public:
+        /// \brief Create an initial zero twist
+        Twist2D();
+
+        /// \brief Create a twist with angular and linear velocity
+        /// \param angular - the angular velocity
+        /// \param linear - the linear velocity
+        Twist2D(double angular, const Vector2D & linear);
+
+        /// \brief get the x component of the linear velocity
+        /// \return the x velocity
+        double linearX() const;
+        
+        /// \brief get the y component of the linear velocity
+        /// \return the y velocity
+        double linearY() const;
+
+        /// \brief get the angular velocity
+        /// \return the angular velocity
+        double angular() const;
+
+
+    private:
+        double ang;
+        Vector2D lin;
+
+    };
+
+
+
+    /// \brief should print a human readable version of the twist:
+    /// An example output:
+    /// w (degrees/s): 90 vx: 3 vy: 5
+    /// \param os - an output stream
+    /// \param ts - the twist to print
+    std::ostream & operator<<(std::ostream & os, const Twist2D & ts);
+
+    /// \brief Read a twist from stdin
+    /// Should be able to read input either as output by operator<< or
+    /// as 3 numbers (w (degree/s), vx, vy) separated by spaces or newlines
+    /// \param is - an input stream
+    /// \param ts - the twist to get the input value
+    std::istream & operator>>(std::istream & is, Twist2D & ts);
+
+
+
 
     /// \brief a rigid body transformation in 2 dimensions
     class Transform2D
@@ -138,6 +195,11 @@ namespace rigid2d
         /// for a description
         friend std::ostream & operator<<(std::ostream & os, const Transform2D & tf);
 
+        /// \brief convert a twist to a different reference frame using adjoint
+        /// \param rhs - the twist to be converted
+        /// \return a twist in the new coordinate system
+        Twist2D adjConvert(Twist2D & rhs) const;
+
     private:
         Vector2D translation;
         double rotation;
@@ -155,6 +217,8 @@ namespace rigid2d
     /// \brief Read a transformation from stdin
     /// Should be able to read input either as output by operator<< or
     /// as 3 numbers (degrees, dx, dy) separated by spaces or newlines
+    /// \param is - an input stream
+    /// \param tf - the transform to get the input value
     std::istream & operator>>(std::istream & is, Transform2D & tf);
 
     /// \brief multiply two transforms together, returning their composition
@@ -163,6 +227,13 @@ namespace rigid2d
     /// \return the composition of the two transforms
     /// HINT: This function should be implemented in terms of *=
     Transform2D operator*(Transform2D lhs, const Transform2D & rhs);
+
+
+
+
+
+
+
 }
 
 #endif
