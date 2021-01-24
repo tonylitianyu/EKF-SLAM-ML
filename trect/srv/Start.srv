@@ -1,0 +1,6 @@
+# A service that define and start the turtle rectangular trajectory
+float32 init_x #The starting x position
+float32 init_y #The starting y position
+float32 length #The horizontal distance of the rectangular trajectory
+float32 width  #The vertical distance of the rectangular trajectory
+---

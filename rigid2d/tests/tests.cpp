@@ -1,6 +1,7 @@
 #define CATCH_CONFIG_MAIN
-#include "catch.hpp"
-#include "rigid2d.hpp"
+#include "../catch.hpp"
+#include "../include/rigid2d/rigid2d.hpp"
+//#include "../src/rigid2d.cpp"
 #include <iostream>
 
 

@@ -1,4 +1,4 @@
-#include "rigid2d.hpp"
+#include "../include/rigid2d/rigid2d.hpp"
 #include<iostream>
 
 int main() {

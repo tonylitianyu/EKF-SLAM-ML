@@ -1,4 +1,4 @@
-#include "rigid2d.hpp"
+#include "../include/rigid2d/rigid2d.hpp"
 #include<iostream>
 
 void rigid2d::normalize(Vector2D & v){

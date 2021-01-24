@@ -229,11 +229,6 @@ namespace rigid2d
     Transform2D operator*(Transform2D lhs, const Transform2D & rhs);
 
 
-
-
-
-
-
 }
 
 #endif
