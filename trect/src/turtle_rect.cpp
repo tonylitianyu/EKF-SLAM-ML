@@ -1,5 +1,4 @@
 
-
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "geometry_msgs/Twist.h"
@@ -136,6 +135,9 @@ class TurtleRect
                 if (ang_vel > max_wdot){
                     ang_vel = max_wdot;
                 }
+                if (ang_vel < 0.1){
+                    ang_vel = 0.1;
+                }
 
                 msg.angular.z = ang_vel;
             }else{
@@ -147,7 +149,9 @@ class TurtleRect
                     if (lin_vel > max_xdot){
                         lin_vel = max_xdot;
                     }
-                    ROS_ERROR("[%f]", lin_vel);
+                    if (lin_vel < 0.2){
+                        lin_vel = 0.2;
+                    }
                     msg.linear.x = lin_dis;
                 }else{
                     msg.linear.x = 0.0;
@@ -204,11 +208,11 @@ class TurtleRect
         {
             init_x = req.init_x;
             init_y = req.init_y;
-            double length = req.length;
             double width = req.width;
+            double height = req.height;
 
-            double rect_x[4] = {init_x+length, init_x+length, init_x, init_x};
-            double rect_y[4] = {init_y, init_y+width, init_y+width, init_y};
+            double rect_x[4] = {init_x+width, init_x+width, init_x, init_x};
+            double rect_y[4] = {init_y, init_y+height, init_y+height, init_y};
             double thea[4] = {0.0,1.57,3.14,-1.57};
 
             for (int k = 0; k < 4; k++){
