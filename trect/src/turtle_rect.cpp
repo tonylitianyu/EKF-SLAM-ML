@@ -11,6 +11,10 @@
 #include <cstdio>
 #include <cmath>
 
+
+enum class State {PAUSE, START, LOW_LEFT,LOW_RIGHT,TOP_RIGHT,TOP_LEFT};
+static State state = State::PAUSE;
+
 class TurtleRect
 {
     private:
@@ -20,26 +24,31 @@ class TurtleRect
         ros::ServiceClient clear_client;
         ros::ServiceClient teleport_client;
         ros::ServiceClient pen_client;
+        ros::Timer timer;
 
         bool start_following;
         double max_xdot;
         double max_wdot;
 
+        double init_x;
+        double init_y;
+        double curr_x;
+        double curr_y;
+        double curr_theta;
+
         double rect_x_arr[4];
         double rect_y_arr[4];
         double theta_arr[4];
-        int curr_target;
-        bool update_target;
-        bool move_forward;
 
 
-        bool rotate_flag;
+
 
 
     public:
         TurtleRect(ros::NodeHandle*nh, double max_xdot_vel, double max_wdot_vel, int pub_freq)
         {
             vel_pub = nh->advertise<geometry_msgs::Twist>("turtle1/cmd_vel", pub_freq);
+
             pose_sub = nh->subscribe("turtle1/pose", 1000, &TurtleRect::callback_pose, this);
 
             start_srv = nh->advertiseService("start", &TurtleRect::callback_start_service, this);
@@ -50,76 +59,12 @@ class TurtleRect
 
             pen_client = nh->serviceClient<turtlesim::SetPen>("turtle1/set_pen");
 
-            start_following = false;
-            rotate_flag = false;
+
+            timer = nh->createTimer(ros::Duration(0.1), &TurtleRect::main_loop, this);
         }
-
-        void callback_pose(const turtlesim::Pose &pose)
+        
+        void start_setup()
         {
-            if (start_following)
-            {
-
-                double target_pos_x = rect_x_arr[curr_target];
-                double target_pos_y = rect_y_arr[curr_target];
-
-                double err_x = target_pos_x - pose.x;
-                double err_y = target_pos_y - pose.y; 
-
-
-                double ang_dis = abs(theta_arr[curr_target]-pose.theta);
-
-                geometry_msgs::Twist msg;
-
-                if ((err_x+err_y) < 0.2){
-                    msg.linear.x = 0.5;
-                    msg.angular.z = 0.0;
-                    rotate_flag = true;
-                }else{
-                    if (rotate_flag == true){
-                        if (ang_dis > 0.1){
-                            msg.linear.x = 0.0;
-                            msg.angular.z = 0.5;
-                        }else{
-                            rotate_flag = false;
-                            curr_target += 1;
-                            curr_target = curr_target % 4;
-
-
-                        }
-                    }else{
-                        msg.linear.x = 0.5;
-                        msg.angular.z = 0.0;
-                    }
-                }
-
-
-
-                vel_pub.publish(msg);
-
-
-            }
-
-        }
-
-        bool callback_start_service(trect::Start::Request &req, trect::Start::Response &res)
-        {
-            double init_x = req.init_x;
-            double init_y = req.init_y;
-            double length = req.length;
-            double width = req.width;
-
-            double rect_x[4] = {init_x+length, init_x+length, init_x, init_x};
-            double rect_y[4] = {init_y, init_y+width, init_y+width, init_y};
-            double thea[4] = {0.0,1.57,3.14,-1.57};
-
-            for (int k = 0; k < 4; k++){
-                rect_x_arr[k] = rect_x[k];
-                rect_y_arr[k] = rect_y[k];
-                theta_arr[k] = thea[k];
-            }
-
-            curr_target = 0;
-
             std_srvs::Empty clear_srv;
             clear_client.call(clear_srv);
 
@@ -153,16 +98,129 @@ class TurtleRect
                 teleport_client.call(teleport_srv);
             }
 
+
+
+        }
+
+
+        void main_loop(const ros::TimerEvent &)
+        {
+            switch (state)
+            {
+            case State::PAUSE:
+                break;
+            case State::START:
+                start_setup();
+                state = State::LOW_LEFT;
+                break;
+            case State::LOW_LEFT:
+                break;
+            case State::LOW_RIGHT:
+                break;
+            case State::TOP_RIGHT:
+                break;
+            case State::TOP_LEFT:
+                break;
             
-            start_following = true;
-            update_target = false;
-            move_forward = true;
+            default:
+                throw std::logic_error("Invalid State");
+                break;
+            }
+        }
+
+        void callback_pose(const turtlesim::Pose &pose)
+        {
+            curr_x = pose.x;
+            curr_y = pose.y;
+            curr_theta = pose.theta;
+            // if (start_following && (wait_time > 40)){
+            //     ROS_ERROR("[%f]", pose.x);
             
+
+            //     double target_pos_x = rect_x_arr[curr_target];
+            //     double target_pos_y = rect_y_arr[curr_target];
+
+            //     double lin_dis = sqrt(pow(target_pos_x-pose.x,2)+pow(target_pos_y-pose.y,2));
+                
+
+            //     double err_x = abs(target_pos_x - pose.x);
+            //     double err_y = abs(target_pos_y - pose.y); 
+
+
+            //     double ang_dis = abs(theta_arr[curr_target]-pose.theta);
+
+            //     geometry_msgs::Twist msg;
+                
+
+            //     // if ((err_x+err_y) < 0.2){
+            //     //     msg.linear.x = 0.5;
+            //     //     msg.angular.z = 0.0;
+            //     //     rotate_flag = true;
+            //     // }else{
+            //     //     if (rotate_flag == true){
+            //     //         if (ang_dis > 0.1){
+            //     //             msg.linear.x = 0.0;
+            //     //             msg.angular.z = 0.5;
+            //     //         }else{
+            //     //             rotate_flag = false;
+            //     //             curr_target += 1;
+            //     //             curr_target = curr_target % 4;
+
+
+            //     //         }
+            //     //     }else{
+            //     //         msg.linear.x = 0.5;
+            //     //         msg.angular.z = 0.0;
+            //     //     }
+            //     // }
+
+
+
+
+
+            //     vel_pub.publish(msg);
+
+                
+
+            // }else{
+            //     ROS_ERROR("[%f] before", pose.x);
+            //     wait_time++;
+            // }
+            
+
+        }
+
+        bool callback_start_service(trect::Start::Request &req, trect::Start::Response &res)
+        {
+            init_x = req.init_x;
+            init_y = req.init_y;
+            double length = req.length;
+            double width = req.width;
+
+            double rect_x[4] = {init_x+length, init_x+length, init_x, init_x};
+            double rect_y[4] = {init_y, init_y+width, init_y+width, init_y};
+            double thea[4] = {0.0,1.57,3.14,-1.57};
+
+            for (int k = 0; k < 4; k++){
+                rect_x_arr[k] = rect_x[k];
+                rect_y_arr[k] = rect_y[k];
+                theta_arr[k] = thea[k];
+            }
+
+
+
+
+            state = State::START;
+        
 
             return true;
         }
 
 };
+
+
+
+
 
 int main(int argc, char **argv)
 {
@@ -198,18 +256,16 @@ int main(int argc, char **argv)
     }
 
 
-
-    ros::Rate rate(10);
-
     TurtleRect tr = TurtleRect(&n, max_xdot_param, max_wdot_param,frequency_param);
+    ros::spin();
 
-    while (ros::ok())
-    {
+    // while (ros::ok())
+    // {
+    //     switch(s)
 
-
-        ros::spinOnce();
-        rate.sleep();
-    }
+    //     ros::spinOnce();
+    //     rate.sleep();
+    // }
 
 
     return 0;
