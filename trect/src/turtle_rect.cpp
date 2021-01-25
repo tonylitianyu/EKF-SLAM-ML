@@ -1,4 +1,19 @@
 
+/// \file  turtle_rect.cpp
+/// \brief This node controls a turtle to move in a rectangular trajectory in the turtlesim.
+///
+/// PARAMETERS:
+///     max_xdot (double): The maximum translational velocity of the robot turtle
+///     max_wdot (double): The maximum rotational velocity of the robot turtle
+///     frequency (int):  The frequency of the control loop
+/// PUBLISHES:
+///     vel_pub (geometry_msgs::Twist): Publishes the robot turtle velocity command
+/// SUBSCRIBES:
+///     pose_sub (turtlesim::Pose): Subscribes to the robot turtle current position
+/// SERVICES:
+///     start_srv (trect::Start): Setup the trajectory and make the robot turtle follow the rectangular trajectory
+
+
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "geometry_msgs/Twist.h"
@@ -10,10 +25,12 @@
 #include <cstdio>
 #include <cmath>
 
-
+/// \brief States of the state machine
 enum class State {PAUSE, START, LOW_RIGHT,TOP_RIGHT,TOP_LEFT, LOW_LEFT};
 static State state = State::PAUSE;
 
+
+/// \brief Turtle robot controller for following rectangular trajectory
 class TurtleRect
 {
     private:
@@ -46,6 +63,13 @@ class TurtleRect
 
 
     public:
+
+        /// \brief Create the initial setup for the controller
+        ///
+        /// \param nh - the node handle for ROS
+        /// \param max_xdot_vel - the maximum translational velocity of the robot turtle
+        /// \param max_wdot_vel - the maximum rotational velocity of the robot turtle
+        /// \param pub_freq - The frequency of the control loop 
         TurtleRect(ros::NodeHandle*nh, double max_xdot_vel, double max_wdot_vel, int pub_freq)
         {
             vel_pub = nh->advertise<geometry_msgs::Twist>("turtle1/cmd_vel", pub_freq);
@@ -69,7 +93,8 @@ class TurtleRect
 
 
         }
-        
+
+        /// \brief Setup the trajectory and start the following movement
         void start_setup()
         {
             std_srvs::Empty clear_srv;
@@ -116,7 +141,8 @@ class TurtleRect
 
         }
 
-        void get_next_state(){
+        /// \brief Enter the next state and goal
+        void enter_next_state(){
             if (state == State::LOW_LEFT){
                 state = State::LOW_RIGHT;
             }else{
@@ -124,7 +150,11 @@ class TurtleRect
             }
         }
 
-
+        /// \brief Make the movement to the next goal
+        ///
+        /// \param x - next goal x-position
+        /// \param y - next goal y-position
+        /// \param theta - turtle pointing direction towards next goal
         void move_to_next_goal(double x, double y, double theta){
             geometry_msgs::Twist msg;
 
@@ -156,7 +186,7 @@ class TurtleRect
                 }else{
                     msg.linear.x = 0.0;
                     msg.angular.z = 0.0;
-                    get_next_state();
+                    enter_next_state();
                 }
             }
 
@@ -164,7 +194,7 @@ class TurtleRect
 
         }
 
-
+        /// \brief The main control loop state machine
         void main_loop(const ros::TimerEvent &)
         {
 
@@ -195,6 +225,9 @@ class TurtleRect
             }
         }
 
+        /// \brief Pose subscriber callback function
+        ///
+        /// \param pose - current pose
         void callback_pose(const turtlesim::Pose &pose)
         {
             curr_x = pose.x;
@@ -204,6 +237,11 @@ class TurtleRect
 
         }
 
+        /// \brief Start service call back function
+        ///
+        /// \param req - service request parameters
+        /// \param res - service response
+        /// \return service success
         bool callback_start_service(trect::Start::Request &req, trect::Start::Response &res)
         {
             init_x = req.init_x;
