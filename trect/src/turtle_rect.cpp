@@ -179,10 +179,10 @@ class TurtleRect
                     if (lin_vel > max_xdot){
                         lin_vel = max_xdot;
                     }
-                    if (lin_vel < 0.2){
-                        lin_vel = 0.2;
+                    if (lin_vel < 0.3){
+                        lin_vel = 0.3;
                     }
-                    msg.linear.x = lin_dis;
+                    msg.linear.x = lin_vel;
                 }else{
                     msg.linear.x = 0.0;
                     msg.angular.z = 0.0;
