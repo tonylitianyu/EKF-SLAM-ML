@@ -11,7 +11,10 @@
 /// SUBSCRIBES:
 ///     pose_sub (turtlesim::Pose): Subscribes to the robot turtle current position
 /// SERVICES:
-///     start_srv (trect::Start): Setup the trajectory and make the robot turtle follow the rectangular trajectory
+///     start_srv (trect::Start): Sets up the trajectory and make the robot turtle follow the rectangular trajectory
+///     clear_client (std_srvs::Empty): Clears turtlesim background
+///     teleport_client (turtlesim::TeleportAbsolute): Teleports the turtle to a specific pose
+///     pen_client (turtlesim::SetPen): Sets the pen properties.
 
 
 #include "ros/ros.h"
@@ -70,28 +73,18 @@ class TurtleRect
         /// \param max_xdot_vel - the maximum translational velocity of the robot turtle
         /// \param max_wdot_vel - the maximum rotational velocity of the robot turtle
         /// \param pub_freq - The frequency of the control loop 
-        TurtleRect(ros::NodeHandle*nh, double max_xdot_vel, double max_wdot_vel, int pub_freq)
+        TurtleRect(ros::NodeHandle*nh, double max_xdot_vel, double max_wdot_vel, int pub_freq):
+            vel_pub(nh->advertise<geometry_msgs::Twist>("turtle1/cmd_vel", pub_freq)),
+            pose_sub(nh->subscribe("turtle1/pose", 1000, &TurtleRect::callback_pose, this)),
+            start_srv(nh->advertiseService("start", &TurtleRect::callback_start_service, this)),
+            clear_client(nh->serviceClient<std_srvs::Empty>("clear")),
+            teleport_client(nh->serviceClient<turtlesim::TeleportAbsolute>("turtle1/teleport_absolute")),
+            pen_client(nh->serviceClient<turtlesim::SetPen>("turtle1/set_pen")),
+            timer(nh->createTimer(ros::Duration(0.1), &TurtleRect::main_loop, this)),
+            max_xdot(max_xdot_vel),
+            max_wdot(max_wdot_vel)
+
         {
-            vel_pub = nh->advertise<geometry_msgs::Twist>("turtle1/cmd_vel", pub_freq);
-
-            pose_sub = nh->subscribe("turtle1/pose", 1000, &TurtleRect::callback_pose, this);
-
-            start_srv = nh->advertiseService("start", &TurtleRect::callback_start_service, this);
-
-            clear_client = nh->serviceClient<std_srvs::Empty>("clear");
-
-            teleport_client = nh->serviceClient<turtlesim::TeleportAbsolute>("turtle1/teleport_absolute");
-
-            pen_client = nh->serviceClient<turtlesim::SetPen>("turtle1/set_pen");
-
-
-            timer = nh->createTimer(ros::Duration(0.1), &TurtleRect::main_loop, this);
-
-            max_xdot = max_xdot_vel;
-            max_wdot = max_wdot_vel;
-
-
-
         }
 
         /// \brief Setup the trajectory and start the following movement
@@ -147,6 +140,7 @@ class TurtleRect
                 state = State::LOW_RIGHT;
             }else{
                 state = static_cast<State>(static_cast<int>(state) + 1);
+                //Source: https://stackoverflow.com/questions/40979513/changing-enum-to-next-value-c11
             }
         }
 
