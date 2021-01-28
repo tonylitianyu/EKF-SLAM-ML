@@ -33,7 +33,7 @@ int main() {
     //T_ac
     rigid2d::Vector2D v_ab = {t_ab.x(),t_ab.y()};
     rigid2d::Transform2D t_ab_temp = rigid2d::Transform2D(v_ab, t_ab.theta());
-    t_ab_temp*t_bc;
+    t_ab_temp*=t_bc;
     rigid2d::Transform2D t_ac = t_ab_temp;
     std::cout << "T_ac: " << t_ac << std::endl;
 
