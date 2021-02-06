@@ -1,8 +1,7 @@
-#define CATCH_CONFIG_MAIN
-#include "../catch.hpp"
+#include "catch_ros/catch.hpp"
 #include "../include/rigid2d/rigid2d.hpp"
-//#include "../src/rigid2d.cpp"
 #include <iostream>
+#include <sstream>
 
 
 TEST_CASE( "Vector Normalization", "[vector2d]"){
