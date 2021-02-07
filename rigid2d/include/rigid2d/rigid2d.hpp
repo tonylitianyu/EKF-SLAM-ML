@@ -69,7 +69,68 @@ namespace rigid2d
     {
         double x = 0.0;
         double y = 0.0;
+
+        /// \brief create a zero vector
+        Vector2D();
+
+        /// \brief create a vector that takes x and y
+        /// \param x_val - x value
+        /// \param y_val - y value
+        Vector2D(double x_val, double y_val);
+
+
+        /// \brief perform addition and store the result in this object
+        /// \param rhs - the vector added to this object
+        /// \return the result of the addition operation as reference
+        Vector2D& operator+=(const Vector2D& rhs);
+
+
+        /// \brief perform subtraction and store the result in this object
+        /// \param rhs - the vector subtracted from this object
+        /// \return the result of the subtraction operation as reference
+        Vector2D& operator-=(const Vector2D& rhs);
+
+        /// \brief perform multiplication by a scalar and store the result in this object
+        /// \param scalar - the scalar multiplied by this object
+        /// \return the result of the multiplication operation as reference
+        Vector2D& operator*=(const int scalar);
+
+        /// \brief compute the magnitude of the vector
+        /// \return magnitude of the vector
+        double magnitude();
+
+        /// \brief compute the angle of the vector
+        /// \return magnitude of the vector
+        double angle();
+
+
     };
+
+    /// \brief perform addition and return a copy
+    /// \param lhs - the left hand operand
+    /// \param rhs - the right hand operand
+    /// \return the result of the addition operation
+    inline Vector2D operator+(Vector2D lhs, const Vector2D& rhs);
+
+    /// \brief perform subtraction and return a copy
+    /// \param lhs - the left hand operand
+    /// \param rhs - the right hand operand
+    /// \return the result of the subtraction operation
+    inline Vector2D operator-(Vector2D lhs, const Vector2D& rhs);
+
+    /// \brief perform multiplication by a scalar from the left and return a copy
+    /// \param scalar - the scalar
+    /// \param rhs - the vector being multiplied by the scalar
+    /// \return the result of the multiplication operation
+    inline Vector2D operator*(const int scalar, Vector2D rhs);
+
+    /// \brief perform multiplication by a scalar from the right and return a copy
+    /// \param lhs - the vector being multiplied by the scalar
+    /// \param scalar - the scalar
+    /// \return the result of the multiplication operation
+    inline Vector2D operator*(Vector2D lhs, const int scalar);
+
+
 
 
     /// \brief Normalize a 2-Dimensional Vector
@@ -91,6 +152,10 @@ namespace rigid2d
     /// https://en.cppreference.com/w/cpp/io/basic_istream/peek
     /// https://en.cppreference.com/w/cpp/io/basic_istream/get
     std::istream & operator>>(std::istream & is, Vector2D & v);
+
+
+
+
 
 
     /// \brief spatial velocity in 2 dimensions
@@ -214,7 +279,7 @@ namespace rigid2d
     /// \param tf - the transform to print
     std::ostream & operator<<(std::ostream & os, const Transform2D & tf);
 
-    /// \brief Read a transformation from stdin
+    /// \brief read a transformation from stdin
     /// Should be able to read input either as output by operator<< or
     /// as 3 numbers (degrees, dx, dy) separated by spaces or newlines
     /// \param is - an input stream
@@ -228,6 +293,20 @@ namespace rigid2d
     /// HINT: This function should be implemented in terms of *=
     Transform2D operator*(Transform2D lhs, const Transform2D & rhs);
 
+
+
+
+    /// \brief compute the transformation corresponding to a rigid body
+    /// following a constant twist for one time unit in its original
+    /// body frame
+    /// \param ts - the constant twist that the rigid body follows
+    /// \return The result transformation
+    Transform2D integrateTwist(const Twist2D& ts);
+
+    /// \brief turn any angle into the equivalent one between -pi and pi
+    /// \param rad - the original angle
+    /// \return normalized angle
+    double normalize_angle(double rad);
 
 }
 

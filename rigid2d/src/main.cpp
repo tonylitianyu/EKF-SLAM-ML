@@ -3,7 +3,6 @@
 
 int main() {
 
-
     std::cout << "Enter T_ab (theta(in degree) x y): ";
     rigid2d::Transform2D t_ab = rigid2d::Transform2D();
     std::cin >> t_ab;

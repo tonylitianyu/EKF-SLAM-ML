@@ -279,3 +279,51 @@ TEST_CASE( "Twist2D Input Stream", "[iostream]"){
     REQUIRE( tw.linearY() == Approx(0.6) );
 
 }
+
+
+TEST_CASE( "Integrate a Twist with Pure Translation", "[Integration]"){
+    rigid2d::Vector2D tran = rigid2d::Vector2D(1.0, 2.0);
+    rigid2d::Twist2D ts = rigid2d::Twist2D(0.0, tran);
+
+    rigid2d::Transform2D t_bbq = rigid2d::integrateTwist(ts);
+    REQUIRE( t_bbq.theta() == Approx(0.0) );
+    REQUIRE( t_bbq.x() == Approx(1.0) );
+    REQUIRE( t_bbq.y() == Approx(2.0) );
+
+}
+
+TEST_CASE( "Integrate a Twist with Pure Rotation", "[Integration]"){
+    rigid2d::Vector2D tran = rigid2d::Vector2D(0.0, 0.0);
+    rigid2d::Twist2D ts = rigid2d::Twist2D(0.5, tran);
+
+    rigid2d::Transform2D t_bbq = rigid2d::integrateTwist(ts);
+    REQUIRE( t_bbq.theta() == Approx(0.5) );
+    REQUIRE( t_bbq.x() == Approx(0.0) );
+    REQUIRE( t_bbq.y() == Approx(0.0) );
+
+}
+
+
+TEST_CASE( "Integrate a Twist with Simultaneous Translation and Rotation", "[Integration]"){
+    rigid2d::Vector2D tran = rigid2d::Vector2D(1.0, 2.2);
+    rigid2d::Twist2D ts = rigid2d::Twist2D(0.5, tran);
+
+    rigid2d::Transform2D t_bbq = rigid2d::integrateTwist(ts);
+    REQUIRE( t_bbq.theta() == Approx(0.5) );
+    REQUIRE( t_bbq.x() == Approx(0.4202143) );
+    REQUIRE( t_bbq.y() == Approx(2.3543072) );
+
+}
+
+
+
+TEST_CASE( "Normalizing Angle", "[Integration]"){
+    double simple = rigid2d::normalize_angle(rigid2d::deg2rad(30));
+    double out = rigid2d::normalize_angle(rigid2d::deg2rad(230));
+    double negative = rigid2d::normalize_angle(rigid2d::deg2rad(-330));
+
+    REQUIRE( simple == Approx(0.523599) );
+    REQUIRE( out == Approx(-2.26893) );
+    REQUIRE( negative == Approx(0.523599) );   
+    
+}
