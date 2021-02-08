@@ -1,7 +1,16 @@
 #include "../include/rigid2d/rigid2d.hpp"
+#include "../include/rigid2d/diff_drive.hpp"
 #include<iostream>
 
 int main() {
+    double left_angle = 0.0;
+    double right_angle = 3.1415926;
+    
+    rigid2d::DiffDrive dd = rigid2d::DiffDrive(0.2, 0.05);
+
+    dd.updatePose(left_angle, right_angle);
+
+
 
     std::cout << "Enter T_ab (theta(in degree) x y): ";
     rigid2d::Transform2D t_ab = rigid2d::Transform2D();
