@@ -4,7 +4,7 @@
 
 int main() {
     double left_angle = 0.0;
-    double right_angle = 3.1415926;
+    double right_angle = 2*3.1415926;
     
     rigid2d::DiffDrive dd = rigid2d::DiffDrive(0.2, 0.05);
 

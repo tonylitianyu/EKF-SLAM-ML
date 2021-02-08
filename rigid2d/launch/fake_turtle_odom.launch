@@ -1,0 +1,7 @@
+<launch>
+    <rosparam command="load" file="$(find rigid2d)/config/fake_turtle_param.yaml" />
+
+    <node name="odometer" pkg="rigid2d" type="odometer" />
+    <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="turtlebot3_teleop_keyboard"  output="screen" />
+
+</launch>

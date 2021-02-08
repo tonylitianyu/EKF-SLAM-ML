@@ -370,12 +370,12 @@ TEST_CASE( "Update Pose Rotation in Position", "[Odometry]"){
 
 TEST_CASE( "Update Pose Rotation 90 degree ", "[Odometry]"){
     double left_angle = 0.0;
-    double right_angle = 3.1415926;
+    double right_angle = 2*3.1415926;
     
     rigid2d::DiffDrive dd = rigid2d::DiffDrive(0.2, 0.05);
 
     dd.updatePose(left_angle, right_angle);
-    REQUIRE( dd.getTheta() == Approx(0.7854) );
-    //REQUIRE( dd.getPosition().x == Approx(0.1) );
+    REQUIRE( dd.getTheta() == Approx(1.5708) );
+    REQUIRE( dd.getPosition().x == Approx(0.1) );
     REQUIRE( dd.getPosition().y == Approx(0.1) );
 }

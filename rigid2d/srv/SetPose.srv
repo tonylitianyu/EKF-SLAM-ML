@@ -1,0 +1,5 @@
+# A service that set the configuration of the robot
+float32 x         #The x position
+float32 y         #The y position
+float32 theta     #The orientation angle
+---

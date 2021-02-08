@@ -8,8 +8,15 @@ project(rigid2d)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-	roscpp
 	catch_ros
+	geometry_msgs
+	message_generation
+	nav_msgs
+	roscpp
+	sensor_msgs
+	std_msgs
+	tf2
+	tf2_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -53,11 +60,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  SetPose.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -67,10 +73,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -103,8 +109,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 INCLUDE_DIRS
-LIBRARIES rigid2d
-CATKIN_DEPENDS roscpp
+LIBRARIES ${PROJECT_NAME}
+CATKIN_DEPENDS geometry_msgs message_runtime nav_msgs roscpp sensor_msgs std_msgs tf2 tf2_ros
 #  DEPENDS system_lib
 )
 
@@ -120,8 +126,8 @@ ${catkin_INCLUDE_DIRS}
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
-  src/rigid2d.cpp
   src/diff_drive.cpp
+  src/rigid2d.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -132,22 +138,30 @@ add_library(${PROJECT_NAME}
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node src/main.cpp)
+add_executable(${PROJECT_NAME}_main src/main.cpp)
+add_executable(${PROJECT_NAME}_odometer src/odometer.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
-set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME main PREFIX "")
+set_target_properties(${PROJECT_NAME}_main PROPERTIES OUTPUT_NAME main PREFIX "")
+set_target_properties(${PROJECT_NAME}_odometer PROPERTIES OUTPUT_NAME odometer PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_main ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_odometer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}_node
+target_link_libraries(${PROJECT_NAME}_main
   ${catkin_LIBRARIES}
-  rigid2d
+  ${PROJECT_NAME}
+)
+
+target_link_libraries(${PROJECT_NAME}_odometer
+  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
 )
 
 #############
@@ -166,7 +180,11 @@ target_link_libraries(${PROJECT_NAME}_node
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
-install(TARGETS ${PROJECT_NAME}_node
+install(TARGETS ${PROJECT_NAME}_main
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS ${PROJECT_NAME}_odometer
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -208,6 +226,6 @@ catch_add_test(rigid_test tests/tests.cpp)
 
 target_link_libraries(rigid_test
 	${catkin_LIBRARIES}
-	rigid2d
+	${PROJECT_NAME}
 )
 
