@@ -1,3 +1,21 @@
+/// \file  odometer.cpp
+/// \brief Estimates the configuration of the robot based on information about how the wheels have moved
+///
+/// PARAMETERS:
+///     odom_frame_id (string): The name of the odometry tf frame
+///     body_frame_id (string): The name of the body tf frame
+///     left_wheel_joint (string):  The name of the left wheel joint
+///     right_wheel_joint (string):  The name of the right wheel joint
+///     wheel_base (double):  The distance between the wheels
+///     wheel_radius (double):  The radius of the wheels
+/// PUBLISHES:
+///     odom_pub (nav_msgs::Odometry): Publishes the robot updated odometry
+/// SUBSCRIBES:
+///     joint_state_sub (sensor_msgs::JointState): Subscribes to the current wheel joint angle
+/// SERVICES:
+///     set_pose_srv (rigid2d::SetPose): Resets the robot to a given configuration
+
+
 #include "ros/ros.h"
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Quaternion.h"
@@ -11,7 +29,7 @@
 #include <cstdio>
 
 
-
+/// \brief keep track of diff drive robot odometry
 class Odometer
 {
     private:
@@ -33,6 +51,14 @@ class Odometer
         double right_wheel_angle;
 
     public:
+
+        /// \brief create the initial setup for odometer
+        ///
+        /// \param nh - the node handle for ROS
+        /// \param odom_frame_id_str - The name of the odometry tf frame
+        /// \param body_frame_id_str - The name of the body tf frame
+        /// \param wheel_base_val - The distance between the wheels 
+        /// \param wheel_radius_val - The radius of the wheels
         Odometer(ros::NodeHandle nh, std::string odom_frame_id_str, std::string body_frame_id_str, double wheel_base_val, double wheel_radius_val):
         timer(nh.createTimer(ros::Duration(0.1), &Odometer::main_loop, this)),
         joint_state_sub(nh.subscribe("joint_states", 1000, &Odometer::callback_joints, this)),
@@ -50,7 +76,7 @@ class Odometer
         {
         }
 
-
+        /// \brief publish updated odometry information and transformation
         void publishUpdatedOdometry(){
 
             double delta_left_wheel_angle = left_wheel_angle - prev_left_wheel_angle;
@@ -95,6 +121,10 @@ class Odometer
 
         }
 
+        /// \brief callback function for set_pose service
+        /// \param req - service request parameters
+        /// \param res - service response
+        /// \return service success
         bool callback_set_pose_service(rigid2d::SetPose::Request &req, rigid2d::SetPose::Response &res)
         {
             
@@ -108,6 +138,9 @@ class Odometer
             return true;
         }
 
+
+        /// \brief callback function for joint state subscriber
+        /// \param joints - new wheel angle states
         void callback_joints(const sensor_msgs::JointState &joints)
         {
 
@@ -117,7 +150,7 @@ class Odometer
             right_wheel_angle = joints.position[1];
 
         }
-
+        /// \brief The main control loop state machine
         void main_loop(const ros::TimerEvent &){
             publishUpdatedOdometry();
         }

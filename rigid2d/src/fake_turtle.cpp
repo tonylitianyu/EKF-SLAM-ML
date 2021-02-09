@@ -1,9 +1,25 @@
+/// \file  fake_turtle.cpp
+/// \brief Creates kinematic simulation of a diff drive robot
+///
+/// PARAMETERS:
+///     left_wheel_joint (string):  The name of the left wheel joint
+///     right_wheel_joint (string):  The name of the right wheel joint
+///     wheel_base (double):  The distance between the wheels
+///     wheel_radius (double):  The radius of the wheels
+/// PUBLISHES:
+///     joint_pub (sensor_msgs::JointState): Publishes the new joint states
+/// SUBSCRIBES:
+///     vel_sub (geometry_msgs::Twist): Subscribes to the velocity control command
+
+
+
 #include "ros/ros.h"
 #include "geometry_msgs/Twist.h"
 #include "sensor_msgs/JointState.h"
 #include "rigid2d/diff_drive.hpp"
 
 
+/// \brief - the simulation class for diff drive turtle robot
 class FakeTurtle{
     private:
         ros::NodeHandle n;
@@ -20,6 +36,13 @@ class FakeTurtle{
 
 
     public:
+        /// \brief create the initial setup for the simulator
+        ///
+        /// \param nh - the node handle for ROS
+        /// \param left_wheel_joint_str - The name of the left wheel joint
+        /// \param right_wheel_joint_str - The name of the right wheel joint
+        /// \param wheel_base_val - The distance between the wheels 
+        /// \param wheel_radius_val - The radius of the wheels
         FakeTurtle(ros::NodeHandle nh, std::string left_wheel_joint_str, std::string right_wheel_joint_str, double wheel_base_val, double wheel_radius_val):
         vel_sub(nh.subscribe("cmd_vel", 1000, &FakeTurtle::callback_vel, this)),
         joint_pub(nh.advertise<sensor_msgs::JointState>("joint_states", 100)),
@@ -32,6 +55,8 @@ class FakeTurtle{
 
         }
 
+        /// \brief callback function for velocity command
+        /// \param vel - velocity command
         void callback_vel(const geometry_msgs::Twist &vel)
         {
             double x = vel.linear.x;
