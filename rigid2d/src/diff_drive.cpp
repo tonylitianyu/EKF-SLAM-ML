@@ -36,8 +36,7 @@ rigid2d::Vector2D rigid2d::DiffDrive::calculateWheelVelocity(const Twist2D& ts){
     return {wheel_vel_x_L, wheel_vel_x_R};
 }
 
-
-void rigid2d::DiffDrive::updatePose(double left_angle, double right_angle){
+rigid2d::Twist2D rigid2d::DiffDrive::getBodyTwistForUpdate(double left_angle, double right_angle){
     double D = wheel_b*0.5;
     double r = wheel_r;
     double ts_angle = (r/(2*D))*(right_angle-left_angle);   //Using equation (3), find the twist angle from wheel angle
@@ -45,6 +44,12 @@ void rigid2d::DiffDrive::updatePose(double left_angle, double right_angle){
 
     rigid2d::Vector2D lin = {ts_x, 0.0};
     rigid2d::Twist2D body_twist = Twist2D(ts_angle, lin);
+    return body_twist;
+}
+
+
+void rigid2d::DiffDrive::updatePose(double left_angle, double right_angle){
+    rigid2d::Twist2D body_twist = rigid2d::DiffDrive::getBodyTwistForUpdate(left_angle, right_angle);
 
     rigid2d::Transform2D t_bbq = integrateTwist(body_twist);
 

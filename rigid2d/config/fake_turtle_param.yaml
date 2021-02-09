@@ -1,7 +1,7 @@
 #The parameters for the fake turtle differentialdrive robot
-odom_frame_id: "odom"               #The name of the odometry tf frame
-body_frame_id: "body"               #The name of the body tf frame
-left_wheel_joint: "left_wheel"      #The name of the left wheel joint
-right_wheel_joint: "right_wheel"    #The name of the right wheel joint
-wheel_base: 0.16                    #The distance between the wheels
-wheel_radius: 0.033                 #The radius of the wheels
+odom_frame_id: "odom"   #The name of the odometry tf frame
+body_frame_id: "base_footprint"   #The name of the body tf frame
+left_wheel_joint: "wheel_left_joint"   #The name of the left wheel joint
+right_wheel_joint: "wheel_right_joint" #The name of the right wheel joint
+wheel_base: 0.16   #The distance between the wheels
+wheel_radius: 0.033   #The radius of the wheels

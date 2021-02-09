@@ -1,7 +1,11 @@
 <launch>
     <rosparam command="load" file="$(find rigid2d)/config/fake_turtle_param.yaml" />
-
-    <node name="odometer" pkg="rigid2d" type="odometer" />
+    <param name="robot_description" command="$(find xacro)/xacro $(find nuturtle_description)/urdf/turtlebot3_burger.urdf.xacro" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+    <node name="odometer" pkg="rigid2d" type="odometer"  />
+    <node name="fake_turtle" pkg="rigid2d" type="fake_turtle" />
     <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="turtlebot3_teleop_keyboard"  output="screen" />
+
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nuturtle_description)/config/turtlebot3.rviz"/>
 
 </launch>

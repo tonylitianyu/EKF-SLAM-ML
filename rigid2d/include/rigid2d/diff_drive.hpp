@@ -20,6 +20,9 @@ namespace rigid2d
 
             Vector2D calculateWheelVelocity(const Twist2D& ts);
 
+            Twist2D getBodyTwistForUpdate(double left_angle, double right_angle);
+
+
             void updatePose(double left_angle, double right_angle);
 
             Vector2D getPosition();

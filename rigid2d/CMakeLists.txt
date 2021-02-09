@@ -140,6 +140,7 @@ add_library(${PROJECT_NAME}
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_main src/main.cpp)
 add_executable(${PROJECT_NAME}_odometer src/odometer.cpp)
+add_executable(${PROJECT_NAME}_fake_turtle src/fake_turtle.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -147,11 +148,13 @@ add_executable(${PROJECT_NAME}_odometer src/odometer.cpp)
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
 set_target_properties(${PROJECT_NAME}_main PROPERTIES OUTPUT_NAME main PREFIX "")
 set_target_properties(${PROJECT_NAME}_odometer PROPERTIES OUTPUT_NAME odometer PREFIX "")
+set_target_properties(${PROJECT_NAME}_fake_turtle PROPERTIES OUTPUT_NAME fake_turtle PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(${PROJECT_NAME}_main ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME}_odometer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_fake_turtle ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_main
@@ -160,6 +163,11 @@ target_link_libraries(${PROJECT_NAME}_main
 )
 
 target_link_libraries(${PROJECT_NAME}_odometer
+  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
+)
+
+target_link_libraries(${PROJECT_NAME}_fake_turtle
   ${catkin_LIBRARIES}
   ${PROJECT_NAME}
 )
@@ -185,6 +193,10 @@ install(TARGETS ${PROJECT_NAME}_main
 )
 
 install(TARGETS ${PROJECT_NAME}_odometer
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS ${PROJECT_NAME}_fake_turtle
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

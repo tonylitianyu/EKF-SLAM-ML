@@ -19,6 +19,7 @@ class Odometer
         ros::Subscriber joint_state_sub;
         ros::Publisher odom_pub;
         ros::ServiceServer set_pose_srv;
+        ros::Timer timer;
 
         rigid2d::DiffDrive dd;
         std::string odom_frame_id;
@@ -26,8 +27,14 @@ class Odometer
         double wheel_base;
         double wheel_radius;
 
+        double prev_left_wheel_angle;
+        double prev_right_wheel_angle;
+        double left_wheel_angle;
+        double right_wheel_angle;
+
     public:
         Odometer(ros::NodeHandle nh, std::string odom_frame_id_str, std::string body_frame_id_str, double wheel_base_val, double wheel_radius_val):
+        timer(nh.createTimer(ros::Duration(0.1), &Odometer::main_loop, this)),
         joint_state_sub(nh.subscribe("joint_states", 1000, &Odometer::callback_joints, this)),
         odom_pub(nh.advertise<nav_msgs::Odometry>("odom", 100)),
         dd(rigid2d::DiffDrive(wheel_base_val, wheel_radius_val)),
@@ -35,8 +42,57 @@ class Odometer
         odom_frame_id(odom_frame_id_str),
         body_frame_id(body_frame_id_str),
         wheel_base(wheel_base_val),
-        wheel_radius(wheel_radius_val)
+        wheel_radius(wheel_radius_val),
+        left_wheel_angle(0.0),
+        right_wheel_angle(0.0),
+        prev_left_wheel_angle(0.0),
+        prev_right_wheel_angle(0.0)
         {
+        }
+
+
+        void publishUpdatedOdometry(){
+
+            double delta_left_wheel_angle = left_wheel_angle - prev_left_wheel_angle;
+            double delta_right_wheel_angle = right_wheel_angle - prev_right_wheel_angle;
+            rigid2d::Twist2D body_twist = dd.getBodyTwistForUpdate(delta_left_wheel_angle, delta_right_wheel_angle);
+            dd.updatePose(delta_left_wheel_angle, delta_right_wheel_angle);
+
+            static tf2_ros::TransformBroadcaster odom_br;
+
+            tf2::Quaternion q;
+            q.setRPY(0,0,dd.getTheta());
+
+            nav_msgs::Odometry odom;
+            odom.header.stamp = ros::Time::now();
+            odom.header.frame_id = odom_frame_id;
+            odom.pose.pose.position.x = dd.getPosition().x;
+            odom.pose.pose.position.y = dd.getPosition().y;
+            odom.pose.pose.position.z = 0.0;
+            odom.pose.pose.orientation.x = q.x();
+            odom.pose.pose.orientation.y = q.y();
+            odom.pose.pose.orientation.z = q.z();
+            odom.pose.pose.orientation.w = q.w();
+            odom.child_frame_id = body_frame_id;
+            odom.twist.twist.linear.x = body_twist.linearX();
+            odom.twist.twist.linear.y = body_twist.linearY();
+            odom.twist.twist.angular.z = body_twist.angular();
+            odom_pub.publish(odom);
+
+            //source: http://wiki.ros.org/tf2/Tutorials/Writing%20a%20tf2%20broadcaster%20%28C%2B%2B%29
+            geometry_msgs::TransformStamped odom_transform;
+            odom_transform.header.stamp = ros::Time::now();
+            odom_transform.header.frame_id = odom_frame_id;
+            odom_transform.child_frame_id = body_frame_id;
+            odom_transform.transform.translation.x = dd.getPosition().x;
+            odom_transform.transform.translation.y = dd.getPosition().y;
+            odom_transform.transform.translation.z = 0.0;
+            odom_transform.transform.rotation.x = q.x();
+            odom_transform.transform.rotation.y = q.y();
+            odom_transform.transform.rotation.z = q.z();
+            odom_transform.transform.rotation.w = q.w();
+            odom_br.sendTransform(odom_transform);
+
         }
 
         bool callback_set_pose_service(rigid2d::SetPose::Request &req, rigid2d::SetPose::Response &res)
@@ -54,46 +110,20 @@ class Odometer
 
         void callback_joints(const sensor_msgs::JointState &joints)
         {
-            double left_wheel_angle = joints.position[0];
-            double right_wheel_angle = joints.position[1];
 
-            dd.updatePose(left_wheel_angle, right_wheel_angle);
+            prev_left_wheel_angle = left_wheel_angle;
+            prev_right_wheel_angle = right_wheel_angle;
+            left_wheel_angle = joints.position[0];
+            right_wheel_angle = joints.position[1];
 
-            tf2::Quaternion q;
-            q.setRPY(0,0,dd.getTheta());
+        }
 
-            nav_msgs::Odometry odom;
-            odom.header.stamp = ros::Time::now();
-            odom.header.frame_id = odom_frame_id;
-
-            odom.pose.pose.position.x = dd.getPosition().x;
-            odom.pose.pose.position.y = dd.getPosition().y;
-            odom.pose.pose.position.z = 0.0;
-            odom.pose.pose.orientation.x = q.x();
-            odom.pose.pose.orientation.y = q.y();
-            odom.pose.pose.orientation.z = q.z();
-            odom.pose.pose.orientation.w = q.w();
-
-
-            odom.child_frame_id = body_frame_id;
-            odom.twist.twist.linear.x = 0.0;
-            odom.twist.twist.linear.y = 0.0;
-            odom.twist.twist.angular.z = 0.0;
-
-
-            odom_pub.publish(odom);
-
-            //source: http://wiki.ros.org/tf2/Tutorials/Writing%20a%20tf2%20broadcaster%20%28C%2B%2B%29
-            tf2_ros::TransformBroadcaster odom_br;
-            geometry_msgs::TransformStamped odom_transform;
-            odom_transform.header.stamp = ros::Time::now();
-            odom_transform.header.frame_id = odom_frame_id;
-            odom_transform.child_frame_id = body_frame_id;
-            odom_br.sendTransform(odom_transform);
+        void main_loop(const ros::TimerEvent &){
+            publishUpdatedOdometry();
         }
 
 
-
+    
 };
 
 
