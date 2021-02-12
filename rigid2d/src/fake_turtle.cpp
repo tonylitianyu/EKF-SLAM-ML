@@ -35,6 +35,7 @@ class FakeTurtle{
         double right_wheel_angle;
 
 
+
     public:
         /// \brief create the initial setup for the simulator
         ///
@@ -71,8 +72,8 @@ class FakeTurtle{
             double delta_wheel_left = wheel_vel.x;
             double delta_wheel_right = wheel_vel.y;
 
-            left_wheel_angle += delta_wheel_left;
-            right_wheel_angle += delta_wheel_right;
+            left_wheel_angle += (delta_wheel_left/10.0);  //10.0 is the timer frequency in odometer
+            right_wheel_angle += (delta_wheel_right/10.0);
 
 
             sensor_msgs::JointState joint_msg;
