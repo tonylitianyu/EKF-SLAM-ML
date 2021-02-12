@@ -1,7 +1,7 @@
 <launch>
     <arg name="robot" default="localhost" doc="the hostname of the turtlebot" />
 
-    <machine name="turtlebot" address="boba.local" env-loader="/home/ubuntu/loader.sh" user="ubuntu" />
+    <machine name="turtlebot" address="$(arg robot)" env-loader="/home/ubuntu/loader.sh" user="ubuntu" />
 
     <node pkg="rosserial_python" type="serial_node.py" name="serial_node" machine="turtlebot">
         <param name="port" value="/dev/ttyACM0"/>
