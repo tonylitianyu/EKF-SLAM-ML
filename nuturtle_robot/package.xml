@@ -51,6 +51,19 @@
   <buildtool_depend>catkin</buildtool_depend>
   <exec_depend>rosserial_python</exec_depend>
 
+  <build_depend>catch_ros</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>nuturtlebot</build_depend>
+  <build_depend>rigid2d</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rostest</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <build_export_depend>nuturtlebot</build_export_depend>
+  <build_export_depend>rigid2d</build_export_depend>
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>sensor_msgs</build_export_depend>
+
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

@@ -69,11 +69,11 @@ class FakeTurtle{
             rigid2d::Vector2D wheel_vel = dd.calculateWheelVelocity(ts);
 
 
-            double delta_wheel_left = wheel_vel.x;
-            double delta_wheel_right = wheel_vel.y;
+            double delta_wheel_left = (wheel_vel.x/10.0);   //10.0 is the timer frequency in odometer
+            double delta_wheel_right = (wheel_vel.y/10.0);
 
-            left_wheel_angle += (delta_wheel_left/10.0);  //10.0 is the timer frequency in odometer
-            right_wheel_angle += (delta_wheel_right/10.0);
+            left_wheel_angle += delta_wheel_left;  
+            right_wheel_angle += delta_wheel_right;
 
 
             sensor_msgs::JointState joint_msg;
@@ -83,6 +83,9 @@ class FakeTurtle{
 
             joint_msg.position.push_back(left_wheel_angle);
             joint_msg.position.push_back(right_wheel_angle);
+            //vel?
+            joint_msg.velocity.push_back(delta_wheel_left);
+            joint_msg.velocity.push_back(delta_wheel_right);
             joint_pub.publish(joint_msg);
 
 
