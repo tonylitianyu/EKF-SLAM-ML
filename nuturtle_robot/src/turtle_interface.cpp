@@ -32,16 +32,25 @@ class TurtleInterface
 
         int curr_left_encoder;
         int curr_right_encoder;
+        bool first_encoder_flag;
+        int first_left_encoder;
+        int first_right_encoder;
 
         bool wheel_pub_flag;
         bool joint_pub_flag;
+
+        std::string left_wheel_joint;
+        std::string right_wheel_joint;
+
 
 
 
 
     public:
 
-        TurtleInterface(ros::NodeHandle nh, double wheel_base_val, double wheel_radius_val):
+        TurtleInterface(ros::NodeHandle nh, std::string left_wheel_joint_str, std::string right_wheel_joint_str, double wheel_base_val, double wheel_radius_val):
+        left_wheel_joint(left_wheel_joint_str),
+        right_wheel_joint(right_wheel_joint_str),
         timer(nh.createTimer(ros::Duration(0.1), &TurtleInterface::main_loop, this)),
         vel_sub(nh.subscribe("cmd_vel", 1000, &TurtleInterface::callback_vel, this)),
         sensor_sub(nh.subscribe("sensor_data", 1000, &TurtleInterface::callback_sensor, this)),
@@ -55,7 +64,10 @@ class TurtleInterface
         max_trans_vel(0.22),
         max_rota_vel(2.84),
         curr_left_encoder(0),
-        curr_right_encoder(0)
+        curr_right_encoder(0),
+        first_encoder_flag(true),
+        first_left_encoder(0),
+        first_right_encoder(0)
         {
             rigid2d::Vector2D max_lin = {max_trans_vel,0.0};
             rigid2d::Twist2D max_ts = rigid2d::Twist2D(0.0, max_lin);
@@ -90,6 +102,8 @@ class TurtleInterface
 
             sensor_msgs::JointState joint_msg;
             joint_msg.header.stamp = ros::Time::now();
+            joint_msg.name.push_back(left_wheel_joint);
+            joint_msg.name.push_back(right_wheel_joint);
             joint_msg.position.push_back(curr_rad_left);
             joint_msg.position.push_back(curr_rad_right);
 
@@ -145,9 +159,16 @@ class TurtleInterface
 
         void callback_sensor(const nuturtlebot::SensorData & sensor_data)
         {
-            curr_left_encoder = sensor_data.left_encoder;
-            curr_right_encoder = sensor_data.right_encoder;
+            if (first_encoder_flag){
+                first_left_encoder = sensor_data.left_encoder;
+                first_right_encoder = sensor_data.right_encoder;
+                first_encoder_flag = false;
+            }
+
+            curr_left_encoder = sensor_data.left_encoder - first_left_encoder;
+            curr_right_encoder = sensor_data.right_encoder - first_right_encoder;
             joint_pub_flag = true;
+            
         }
 
 
@@ -159,9 +180,27 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "turtle_interface");
     ros::NodeHandle n;
 
-
+    std::string left_wheel_joint;
+    std::string right_wheel_joint;
     double wheel_base;
     double wheel_radius;
+
+    if (n.getParam("left_wheel_joint", left_wheel_joint))
+    {
+        ROS_INFO("left_wheel_joint: %s", left_wheel_joint.c_str());
+    }else
+    {
+        ROS_ERROR("Unable to get param 'left_wheel_joint'");
+    }
+
+    if (n.getParam("right_wheel_joint", right_wheel_joint))
+    {
+        ROS_INFO("right_wheel_joint: %s", right_wheel_joint.c_str());
+    }else
+    {
+        ROS_ERROR("Unable to get param 'right_wheel_joint'");
+    }
+
     if (n.getParam("wheel_base", wheel_base))
     {
         ROS_INFO("wheel_base: %f", wheel_base);
@@ -179,7 +218,7 @@ int main(int argc, char **argv)
     }
 
 
-    TurtleInterface interface = TurtleInterface(n, wheel_base, wheel_radius);
+    TurtleInterface interface = TurtleInterface(n, left_wheel_joint, right_wheel_joint, wheel_base, wheel_radius);
     ros::spin();
 
 

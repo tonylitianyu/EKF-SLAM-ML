@@ -138,22 +138,27 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_interface src/turtle_interface.cpp)
+add_executable(${PROJECT_NAME}_follow_cicle src/follow_circle.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
 set_target_properties(${PROJECT_NAME}_interface PROPERTIES OUTPUT_NAME turtle_interface PREFIX "")
+set_target_properties(${PROJECT_NAME}_follow_cicle PROPERTIES OUTPUT_NAME follow_circle PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(${PROJECT_NAME}_interface ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_follow_cicle ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_interface
   ${catkin_LIBRARIES}
 )
-
+target_link_libraries(${PROJECT_NAME}_follow_cicle
+  ${catkin_LIBRARIES}
+)
 #############
 ## Install ##
 #############
@@ -171,6 +176,10 @@ target_link_libraries(${PROJECT_NAME}_interface
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
 install(TARGETS ${PROJECT_NAME}_interface
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS ${PROJECT_NAME}_follow_cicle
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
