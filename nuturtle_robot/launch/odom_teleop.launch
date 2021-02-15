@@ -3,10 +3,16 @@
     <arg name="robot" default="localhost" doc="the hostname of the turtlebot" />
     <machine name="turtlebot" address="$(arg robot)" env-loader="/home/ubuntu/loader.sh" user="ubuntu" />
 
-    <node pkg="nuturtle_robot" type="follow_circle" name="follow_circle">
-        <param name="speed" value="0.03"/>
-        <param name="radius" value="0.2"/>
-    </node>
+    <group if="$(arg circle)">
+        <node pkg="nuturtle_robot" type="follow_circle" name="follow_circle">
+            <param name="speed" value="0.03"/>
+            <param name="radius" value="0.2"/>
+        </node>
+    </group>
+    <group unless="$(arg circle)">
+        <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="turtlebot3_teleop_keyboard"  output="screen" />
+    </group>
+
 
 
 
@@ -15,12 +21,12 @@
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
     <node name="odometer" pkg="rigid2d" type="odometer" machine="turtlebot"/>
 
-    <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="turtlebot3_teleop_keyboard"  output="screen" />
 
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find rigid2d)/config/fake_turtle.rviz"/>
 
 
     <node name="turtle_interface" pkg="nuturtle_robot" type="turtle_interface" machine="turtlebot" />
+
 
 
 

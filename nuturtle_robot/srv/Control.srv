@@ -1,0 +1,3 @@
+# A service that let the robot drive in a circle
+string mode     #the mode that the robot follows the circle (clockwise, counter clockwise, stop)
+---

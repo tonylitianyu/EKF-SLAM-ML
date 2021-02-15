@@ -1,17 +1,108 @@
 
 #include "ros/ros.h"
 #include "geometry_msgs/Twist.h"
-#include "sensor_msgs/JointState.h"
-#include "nuturtlebot/WheelCommands.h"
-#include "nuturtlebot/SensorData.h"
-#include "rigid2d/diff_drive.hpp"
-#include "rigid2d/rigid2d.hpp"
+#include "nuturtle_robot/Control.h"
+
+
+class FollowCircle
+{
+    private:
+        double speed;
+        double radius;
+        double angular_speed;
+        ros::Publisher pub;
+        ros::ServiceServer control_srv;
+        ros::Timer timer;
+        bool start_flag;
+        std::string mode;
+
+    public:
+        FollowCircle(ros::NodeHandle nh, double speed_param, double radius_param):
+        timer(nh.createTimer(ros::Duration(0.1), &FollowCircle::main_loop, this)),
+        speed(speed_param),
+        radius(radius_param),
+        pub(nh.advertise<geometry_msgs::Twist>("cmd_vel", 100)),
+        control_srv(nh.advertiseService("control", &FollowCircle::callback_control_service, this)),
+        angular_speed(0.0),
+        start_flag(false),
+        mode("clockwise")
+        {
+            angular_speed = speed/radius;
+        }
+
+        bool callback_control_service(nuturtle_robot::Control::Request &req, nuturtle_robot::Control::Response &res)
+        {
+            start_flag = true;
+            mode = req.mode;
+            
+            return true;
+        }
+
+        void publishCircleVel()
+        {
+            
+            geometry_msgs::Twist vel_msg;
+            if (mode == "clockwise")
+            {
+                vel_msg.linear.x = speed;
+                vel_msg.angular.z = angular_speed;
+            }
+            else if (mode == "counter_clockwise")
+            {
+                vel_msg.linear.x = -speed;
+                vel_msg.angular.z = -angular_speed;
+            }
+            else
+            {
+                vel_msg.linear.x = 0.0;
+                vel_msg.angular.z = 0.0;
+            }
+            
+
+            pub.publish(vel_msg);
+            
+        }
+
+        /// \brief The main control loop state machine
+        void main_loop(const ros::TimerEvent &){
+            if (start_flag){
+                publishCircleVel();
+            }
+        }
+
+
+};
+
+
+
 
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "follow_circle");
     ros::NodeHandle n;
 
+    double speed;
+    double radius;
+
+    if (ros::param::get("~speed", speed))
+    {
+        ROS_INFO("speed: %f", speed);
+    }else
+    {
+        ROS_ERROR("Unable to get param 'speed'");
+    }
+
+    if (ros::param::get("~radius", radius))
+    {
+        ROS_INFO("radius: %f", radius);
+    }else
+    {
+        ROS_ERROR("Unable to get param 'radius'");
+    }
+
+
+
+    FollowCircle fc = FollowCircle(n, speed, radius);
     ros::spin();
 
 
