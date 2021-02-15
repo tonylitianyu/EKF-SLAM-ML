@@ -59,6 +59,7 @@ TEST_CASE("Pure Rotation", "[cmd_vel]")
 }
 
 
+
 void callback_joint_states(const sensor_msgs::JointState &joints)
 {
     
@@ -70,9 +71,17 @@ void callback_joint_states(const sensor_msgs::JointState &joints)
 TEST_CASE("Encoder Data", "[sensor_data]")
 {
     ros::NodeHandle nh;
-    const auto joint_sub = nh.subscribe("joint_states", 1000, callback_joint_states);
 
-	const auto sensor_pub = nh.advertise<nuturtlebot::SensorData>("sensor_data", 100, true);
+	const auto init_sensor_pub = nh.advertise<nuturtlebot::SensorData>("sensor_data", 100, true);
+
+    nuturtlebot::SensorData init_sensor;
+    init_sensor.left_encoder = 0;
+    init_sensor.right_encoder = 0;
+
+    init_sensor_pub.publish(init_sensor);
+
+	const auto joint_sub = nh.subscribe("joint_states", 1000, callback_joint_states);
+    const auto sensor_pub = nh.advertise<nuturtlebot::SensorData>("sensor_data", 100, true);
 
     nuturtlebot::SensorData sensor_msg;
     sensor_msg.left_encoder = 1000;

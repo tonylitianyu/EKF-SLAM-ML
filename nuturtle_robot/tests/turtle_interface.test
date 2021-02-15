@@ -1,5 +1,5 @@
 <launch>
-    <rosparam command="load" file="$(find nuturtle_description)/config/diff_params.yaml" />
+    <rosparam command="load" file="$(find rigid2d)/config/fake_turtle_param.yaml" />
     <node name="turtle_interface" pkg="nuturtle_robot" type="turtle_interface" />
     <test test-name="turtle_interface_test" pkg="nuturtle_robot" type="turtle_interface_test" />
 
