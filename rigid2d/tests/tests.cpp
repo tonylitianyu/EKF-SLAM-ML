@@ -357,8 +357,8 @@ TEST_CASE( "Update Pose Backward", "[Odometry]"){
 }
 
 TEST_CASE( "Update Pose Rotation in Position", "[Odometry]"){
-    double left_angle = -0.5;
-    double right_angle = 0.5;
+    double left_angle = -15.7;
+    double right_angle = 15.7;
     
     rigid2d::DiffDrive dd = rigid2d::DiffDrive(0.2, 0.01);
 
@@ -366,6 +366,8 @@ TEST_CASE( "Update Pose Rotation in Position", "[Odometry]"){
 
     REQUIRE( dd.getPosition().x == Approx(0.0));
     REQUIRE( dd.getPosition().y == Approx(0.0));
+    REQUIRE( dd.getTheta() == Approx(1.57));
+
 }
 
 TEST_CASE( "Update Pose Rotation 90 degree ", "[Odometry]"){
@@ -379,3 +381,5 @@ TEST_CASE( "Update Pose Rotation 90 degree ", "[Odometry]"){
     REQUIRE( dd.getPosition().x == Approx(0.1) );
     REQUIRE( dd.getPosition().y == Approx(0.1) );
 }
+
+

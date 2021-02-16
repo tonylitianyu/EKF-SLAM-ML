@@ -304,7 +304,7 @@ rigid2d::Transform2D rigid2d::operator*(rigid2d::Transform2D lhs, const rigid2d:
 rigid2d::Transform2D rigid2d::integrateTwist(const rigid2d::Twist2D& ts)
 {
     Transform2D t_bbq;
-    if (fabs(ts.angular()) > 0.01){
+    if (fabs(ts.angular()) > 0.0001){
         double xs = ts.linearY()/ts.angular();
         double ys = -ts.linearX()/ts.angular();
 

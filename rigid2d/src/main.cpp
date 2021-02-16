@@ -3,12 +3,16 @@
 #include<iostream>
 
 int main() {
-    double left_angle = 0.0;
-    double right_angle = 2*3.1415926;
+    // double left_angle = 0.025455;
+    // double right_angle = -0.025455;
+    // double left_angle = 0.024242;
+    // double right_angle = -0.024242;
     
-    rigid2d::DiffDrive dd = rigid2d::DiffDrive(0.2, 0.05);
+    // rigid2d::DiffDrive dd = rigid2d::DiffDrive(0.16, 0.033);
 
-    dd.updatePose(left_angle, right_angle);
+    // dd.updatePose(left_angle, right_angle);
+
+    // printf("%f \n", dd.getTheta());
 
 
 

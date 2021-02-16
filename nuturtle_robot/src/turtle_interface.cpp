@@ -32,6 +32,8 @@ class TurtleInterface
 
         int curr_left_encoder;
         int curr_right_encoder;
+        int pre_left_encoder;
+        int pre_right_encoder;
         bool first_encoder_flag;
         int first_left_encoder;
         int first_right_encoder;
@@ -51,7 +53,7 @@ class TurtleInterface
         TurtleInterface(ros::NodeHandle nh, std::string left_wheel_joint_str, std::string right_wheel_joint_str, double wheel_base_val, double wheel_radius_val):
         left_wheel_joint(left_wheel_joint_str),
         right_wheel_joint(right_wheel_joint_str),
-        timer(nh.createTimer(ros::Duration(0.1), &TurtleInterface::main_loop, this)),
+        timer(nh.createTimer(ros::Duration(0.01), &TurtleInterface::main_loop, this)),
         vel_sub(nh.subscribe("cmd_vel", 1000, &TurtleInterface::callback_vel, this)),
         sensor_sub(nh.subscribe("sensor_data", 1000, &TurtleInterface::callback_sensor, this)),
         wheel_pub(nh.advertise<nuturtlebot::WheelCommands>("wheel_cmd", 100)),
@@ -65,14 +67,18 @@ class TurtleInterface
         max_rota_vel(2.84),
         curr_left_encoder(0),
         curr_right_encoder(0),
+        pre_left_encoder(0),
+        pre_right_encoder(0),
         first_encoder_flag(true),
         first_left_encoder(0),
         first_right_encoder(0)
         {
-            rigid2d::Vector2D max_lin = {max_trans_vel,0.0};
-            rigid2d::Twist2D max_ts = rigid2d::Twist2D(0.0, max_lin);
+            // rigid2d::Vector2D max_lin = {max_trans_vel,0.0};
+            // rigid2d::Twist2D max_ts = rigid2d::Twist2D(0.0, max_lin);
+            rigid2d::Vector2D max_lin = {0.0,0.0};
+            rigid2d::Twist2D max_ts = rigid2d::Twist2D(max_rota_vel, max_lin);
             rigid2d::Vector2D wheel_vel = dd.calculateWheelVelocity(max_ts);
-            max_wheel_vel = (wheel_vel.x/10.0)*1.05;
+            max_wheel_vel = (fabs(wheel_vel.x)/100.0)*0.99;
         }
 
         void publishWheelCommand()
@@ -86,8 +92,8 @@ class TurtleInterface
             double delta_wheel_left = wheel_vel.x;
             double delta_wheel_right = wheel_vel.y;
 
-            wheel_cmd.left_velocity = ((delta_wheel_left/10.0)/max_wheel_vel)*256;
-            wheel_cmd.right_velocity = ((delta_wheel_right/10.0)/max_wheel_vel)*256;
+            wheel_cmd.left_velocity = ((delta_wheel_left/100.0)/max_wheel_vel)*256;
+            wheel_cmd.right_velocity = ((delta_wheel_right/100.0)/max_wheel_vel)*256;
 
             wheel_pub.publish(wheel_cmd);
         }
@@ -100,14 +106,18 @@ class TurtleInterface
             double curr_rad_left = ((double)curr_left_encoder/(double)encoder_max_tick)*2*rigid2d::PI;
             double curr_rad_right = ((double)curr_right_encoder/(double)encoder_max_tick)*2*rigid2d::PI;
 
+            double delta_rad_left = ((double)(curr_left_encoder - pre_left_encoder)/(double)encoder_max_tick)*2*rigid2d::PI;
+            double delta_rad_right = ((double)(curr_right_encoder - pre_right_encoder)/(double)encoder_max_tick)*2*rigid2d::PI;
+
             sensor_msgs::JointState joint_msg;
             joint_msg.header.stamp = ros::Time::now();
             joint_msg.name.push_back(left_wheel_joint);
             joint_msg.name.push_back(right_wheel_joint);
             joint_msg.position.push_back(curr_rad_left);
             joint_msg.position.push_back(curr_rad_right);
+            joint_msg.velocity.push_back(delta_rad_left);
+            joint_msg.velocity.push_back(delta_rad_right);
 
-            //vel?
             joint_pub.publish(joint_msg);
 
         }
@@ -164,6 +174,9 @@ class TurtleInterface
                 first_right_encoder = sensor_data.right_encoder;
                 first_encoder_flag = false;
             }
+
+            pre_left_encoder = curr_left_encoder;
+            pre_right_encoder = curr_right_encoder;
 
             curr_left_encoder = sensor_data.left_encoder - first_left_encoder;
             curr_right_encoder = sensor_data.right_encoder - first_right_encoder;

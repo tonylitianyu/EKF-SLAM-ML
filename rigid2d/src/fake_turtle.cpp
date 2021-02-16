@@ -25,6 +25,7 @@ class FakeTurtle{
         ros::NodeHandle n;
         ros::Subscriber vel_sub;
         ros::Publisher joint_pub;
+        ros::Timer timer;
 
         rigid2d::DiffDrive dd;
         std::string left_wheel_joint;
@@ -34,7 +35,9 @@ class FakeTurtle{
         double left_wheel_angle;
         double right_wheel_angle;
 
-
+        double x_vel;
+        double y_vel;
+        double ang_vel;
 
     public:
         /// \brief create the initial setup for the simulator
@@ -45,6 +48,7 @@ class FakeTurtle{
         /// \param wheel_base_val - The distance between the wheels 
         /// \param wheel_radius_val - The radius of the wheels
         FakeTurtle(ros::NodeHandle nh, std::string left_wheel_joint_str, std::string right_wheel_joint_str, double wheel_base_val, double wheel_radius_val):
+        timer(nh.createTimer(ros::Duration(0.01), &FakeTurtle::main_loop, this)),
         vel_sub(nh.subscribe("cmd_vel", 1000, &FakeTurtle::callback_vel, this)),
         joint_pub(nh.advertise<sensor_msgs::JointState>("joint_states", 100)),
         dd(rigid2d::DiffDrive(wheel_base_val, wheel_radius_val)),
@@ -60,17 +64,20 @@ class FakeTurtle{
         /// \param vel - velocity command
         void callback_vel(const geometry_msgs::Twist &vel)
         {
-            double x = vel.linear.x;
-            double y = vel.linear.y;
-            double theta = vel.angular.z;
+            x_vel = vel.linear.x;
+            y_vel = vel.linear.y;
+            ang_vel = vel.angular.z;
 
-            rigid2d::Vector2D lin = {x,y};
-            rigid2d::Twist2D ts = rigid2d::Twist2D(theta, lin);
+        }
+
+        void publishJointState(){
+            rigid2d::Vector2D lin = {x_vel,y_vel};
+            rigid2d::Twist2D ts = rigid2d::Twist2D(ang_vel, lin);
             rigid2d::Vector2D wheel_vel = dd.calculateWheelVelocity(ts);
 
 
-            double delta_wheel_left = (wheel_vel.x/10.0);   //10.0 is the timer frequency in odometer
-            double delta_wheel_right = (wheel_vel.y/10.0);
+            double delta_wheel_left = (wheel_vel.x/100.0);   //100.0 is the timer frequency in odometer
+            double delta_wheel_right = (wheel_vel.y/100.0);
 
             left_wheel_angle += delta_wheel_left;  
             right_wheel_angle += delta_wheel_right;
@@ -83,12 +90,15 @@ class FakeTurtle{
 
             joint_msg.position.push_back(left_wheel_angle);
             joint_msg.position.push_back(right_wheel_angle);
-            //vel?
             joint_msg.velocity.push_back(delta_wheel_left);
             joint_msg.velocity.push_back(delta_wheel_right);
             joint_pub.publish(joint_msg);
+        }
 
 
+        /// \brief The main control loop state machine
+        void main_loop(const ros::TimerEvent &){
+            publishJointState();
         }
 
 

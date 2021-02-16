@@ -45,8 +45,8 @@ class Odometer
         double wheel_base;
         double wheel_radius;
 
-        double prev_left_wheel_angle;
-        double prev_right_wheel_angle;
+        double delta_left_wheel_angle;
+        double delta_right_wheel_angle;
         double left_wheel_angle;
         double right_wheel_angle;
 
@@ -60,7 +60,7 @@ class Odometer
         /// \param wheel_base_val - The distance between the wheels 
         /// \param wheel_radius_val - The radius of the wheels
         Odometer(ros::NodeHandle nh, std::string odom_frame_id_str, std::string body_frame_id_str, double wheel_base_val, double wheel_radius_val):
-        timer(nh.createTimer(ros::Duration(0.1), &Odometer::main_loop, this)),
+        timer(nh.createTimer(ros::Duration(0.01), &Odometer::main_loop, this)),
         joint_state_sub(nh.subscribe("joint_states", 1000, &Odometer::callback_joints, this)),
         odom_pub(nh.advertise<nav_msgs::Odometry>("odom", 100)),
         dd(rigid2d::DiffDrive(wheel_base_val, wheel_radius_val)),
@@ -71,16 +71,14 @@ class Odometer
         wheel_radius(wheel_radius_val),
         left_wheel_angle(0.0),
         right_wheel_angle(0.0),
-        prev_left_wheel_angle(0.0),
-        prev_right_wheel_angle(0.0)
+        delta_left_wheel_angle(0.0),
+        delta_right_wheel_angle(0.0)
         {
         }
 
         /// \brief publish updated odometry information and transformation
         void publishUpdatedOdometry(){
 
-            double delta_left_wheel_angle = left_wheel_angle - prev_left_wheel_angle;
-            double delta_right_wheel_angle = right_wheel_angle - prev_right_wheel_angle;
             rigid2d::Twist2D body_twist = dd.getBodyTwistForUpdate(delta_left_wheel_angle, delta_right_wheel_angle);
             dd.updatePose(delta_left_wheel_angle, delta_right_wheel_angle);
 
@@ -144,11 +142,11 @@ class Odometer
         void callback_joints(const sensor_msgs::JointState &joints)
         {
 
-            prev_left_wheel_angle = left_wheel_angle;
-            prev_right_wheel_angle = right_wheel_angle;
             left_wheel_angle = joints.position[0];
             right_wheel_angle = joints.position[1];
-
+            delta_left_wheel_angle = joints.velocity[0];
+            delta_right_wheel_angle = joints.velocity[1];
+            
         }
         /// \brief The main control loop state machine
         void main_loop(const ros::TimerEvent &){

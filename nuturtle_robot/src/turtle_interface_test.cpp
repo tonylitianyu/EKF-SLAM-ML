@@ -8,8 +8,8 @@
 
 void callback_trans_wheel(const nuturtlebot::WheelCommands & cmd)
 {
-    REQUIRE( cmd.left_velocity == 243 );
-    REQUIRE( cmd.right_velocity == 243 );
+    REQUIRE( cmd.left_velocity == 250 );
+    REQUIRE( cmd.right_velocity == 250 );
 }
 
 TEST_CASE("Pure Translation", "[cmd_vel]")
@@ -34,8 +34,8 @@ TEST_CASE("Pure Translation", "[cmd_vel]")
 
 void callback_rota_wheel(const nuturtlebot::WheelCommands & cmd)
 {
-    REQUIRE( cmd.left_velocity == -250 );
-    REQUIRE( cmd.right_velocity == 250 );
+    REQUIRE( cmd.left_velocity == -256 );
+    REQUIRE( cmd.right_velocity == 256 );
 }
 
 TEST_CASE("Pure Rotation", "[cmd_vel]")
