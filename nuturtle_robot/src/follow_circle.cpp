@@ -1,9 +1,21 @@
+/// \file  follow_circle.cpp
+/// \brief let the robot drive in a circle of a specified radius at a specified speed
+///
+/// 
+/// PARAMETERS:
+///     ~speed (double):  circular trajectory speed
+///     ~radius (double):  circular trajectory radius
+/// PUBLISHES:
+///     pub (geometry_msgs::Twist): Publishes the velocity command for circular trajectory
+/// SERVICES:
+///     control_srv (nuturtle_robot::Control): Resets the robot to a given configuration
+
 
 #include "ros/ros.h"
 #include "geometry_msgs/Twist.h"
 #include "nuturtle_robot/Control.h"
 
-
+/// \brief control the robot to follow the circle
 class FollowCircle
 {
     private:
@@ -17,6 +29,12 @@ class FollowCircle
         std::string mode;
 
     public:
+
+        /// \brief create the controller for following the circle
+        ///
+        /// \param nh - the node handle for ROS
+        /// \param speed_param - circular trajectory speed
+        /// \param radius_param - circular trajectory radius
         FollowCircle(ros::NodeHandle nh, double speed_param, double radius_param):
         timer(nh.createTimer(ros::Duration(0.1), &FollowCircle::main_loop, this)),
         speed(speed_param),
@@ -30,6 +48,10 @@ class FollowCircle
             angular_speed = speed/radius;
         }
 
+        /// \brief callback function for control service
+        /// \param req - service request parameters
+        /// \param res - service response
+        /// \return service success
         bool callback_control_service(nuturtle_robot::Control::Request &req, nuturtle_robot::Control::Response &res)
         {
             start_flag = true;
@@ -38,6 +60,7 @@ class FollowCircle
             return true;
         }
 
+        /// \brief publish control velocity command
         void publishCircleVel()
         {
             

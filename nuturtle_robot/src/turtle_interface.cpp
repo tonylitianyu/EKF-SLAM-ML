@@ -1,3 +1,17 @@
+/// \file  turtle_interface.cpp
+/// \brief low-level control and sensor routines for turtlebot: boba
+///
+/// PARAMETERS:
+///     left_wheel_joint (string):  The name of the left wheel joint
+///     right_wheel_joint (string):  The name of the right wheel joint
+///     wheel_base (double):  The distance between the wheels
+///     wheel_radius (double):  The radius of the wheels
+/// PUBLISHES:
+///     wheel_pub (nuturtlebot::WheelCommands): Publishes the wheel command to turtlebot
+///     joint_pub (sensor_msgs::JointState): Publishes the joint state to the odometry
+/// SUBSCRIBES:
+///     vel_sub (geometry_msgs::Twist): velocity command from user (teleop)
+///     sensor_sub (sensor_msgs::JointState): sensor information from the turtlebot (wheel encoders, etc.)
 
 
 
@@ -10,6 +24,7 @@
 #include "rigid2d/rigid2d.hpp"
 
 
+/// \brief interface with low-level control and sensor
 class TurtleInterface
 {
     private:
@@ -50,6 +65,13 @@ class TurtleInterface
 
     public:
 
+        /// \brief create the initial setup for interface
+        ///
+        /// \param nh - the node handle for ROS
+        /// \param left_wheel_joint_str - The name of the left wheel joint
+        /// \param right_wheel_joint_str - The name of the right wheel joint
+        /// \param wheel_base_val - The distance between the wheels 
+        /// \param wheel_radius_val - The radius of the wheels
         TurtleInterface(ros::NodeHandle nh, std::string left_wheel_joint_str, std::string right_wheel_joint_str, double wheel_base_val, double wheel_radius_val):
         left_wheel_joint(left_wheel_joint_str),
         right_wheel_joint(right_wheel_joint_str),
@@ -81,6 +103,7 @@ class TurtleInterface
             max_wheel_vel = (fabs(wheel_vel.x)/100.0)*0.99;
         }
 
+        /// \brief publish new wheel command
         void publishWheelCommand()
         {
             nuturtlebot::WheelCommands wheel_cmd;
@@ -98,6 +121,7 @@ class TurtleInterface
             wheel_pub.publish(wheel_cmd);
         }
 
+        /// \brief publish new joint state
         void publishJointState()
         {
             
@@ -122,7 +146,7 @@ class TurtleInterface
 
         }
 
-
+        /// \brief The main control loop state machine
         void main_loop(const ros::TimerEvent &)
         {
             if (wheel_pub_flag)
@@ -139,8 +163,8 @@ class TurtleInterface
         }
 
         
-
-
+        /// \brief callback function for velocity command
+        /// \param vel - velocity command
         void callback_vel(const geometry_msgs::Twist & vel)
         {
             if (vel.linear.x > max_trans_vel)
@@ -166,7 +190,8 @@ class TurtleInterface
             wheel_pub_flag = true;
         }
 
-
+        /// \brief callback function for sensor data
+        /// \param sensor_data - incoming sensor data
         void callback_sensor(const nuturtlebot::SensorData & sensor_data)
         {
             if (first_encoder_flag){
