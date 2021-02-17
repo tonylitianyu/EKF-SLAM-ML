@@ -28,7 +28,7 @@ roslaunch nuturtle_robot odom_teleop.launch robot:=boba.local circle:=true
 ```
 
 
-# Physical Experiment (Task F.008)
+# physical experiment (Task F.008)
 
 ### Drive the robot forward and backward in a straight line
 
@@ -36,7 +36,7 @@ roslaunch nuturtle_robot odom_teleop.launch robot:=boba.local circle:=true
 Final location: (0.0003, 0.0002, 0.0)
 ```
 
-Video: https://youtu.be/sd1qR_T_WwQ  
+<b>Video</b>: https://youtu.be/sd1qR_T_WwQ  
 <img src="gifs/trans.gif" width="500">
 <br></br>
  
@@ -46,7 +46,7 @@ Video: https://youtu.be/sd1qR_T_WwQ
 Final location: (0.003, -0.0005, 0.0)
 ```
 
-Video: https://youtu.be/vGaYTb6V9do  
+<b>Video</b>: https://youtu.be/vGaYTb6V9do  
 <img src="gifs/rot.gif" width="500">
 <br></br>
   
@@ -58,7 +58,7 @@ Circle radius = 0.2
 Final location: (0.0198, -0.00066, 0.0)
 ```
 
-Video: https://youtu.be/70wXSg3KgK4  
+<b>Video</b>: https://youtu.be/70wXSg3KgK4  
 <img src="gifs/circle_slow.gif" width="500">
 <br></br>
   
@@ -72,7 +72,7 @@ Final location: (-0.1058, 0.0165, 0.0)
 
 <b>Answer:</b> It made different. The result became significantly worse. I increased the moving speed by more than 5 times and increased the radius of the circle slightly by 0.05.
 
-Video: https://youtu.be/nbap-o6Ijz0  
+<b>Video</b>: https://youtu.be/nbap-o6Ijz0  
 <img src="gifs/circle_fast.gif" width="500">
 
 
