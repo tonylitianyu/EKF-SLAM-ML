@@ -60,7 +60,7 @@ class TurtleInterface
         std::string right_wheel_joint;
 
 
-
+        int counter;
 
 
     public:
@@ -93,10 +93,10 @@ class TurtleInterface
         pre_right_encoder(0),
         first_encoder_flag(true),
         first_left_encoder(0),
-        first_right_encoder(0)
+        first_right_encoder(0),
+        counter(0)
         {
-            // rigid2d::Vector2D max_lin = {max_trans_vel,0.0};
-            // rigid2d::Twist2D max_ts = rigid2d::Twist2D(0.0, max_lin);
+
             rigid2d::Vector2D max_lin = {0.0,0.0};
             rigid2d::Twist2D max_ts = rigid2d::Twist2D(max_rota_vel, max_lin);
             rigid2d::Vector2D wheel_vel = dd.calculateWheelVelocity(max_ts);
@@ -130,8 +130,8 @@ class TurtleInterface
             double curr_rad_left = ((double)curr_left_encoder/(double)encoder_max_tick)*2*rigid2d::PI;
             double curr_rad_right = ((double)curr_right_encoder/(double)encoder_max_tick)*2*rigid2d::PI;
 
-            double delta_rad_left = ((double)(curr_left_encoder - pre_left_encoder)/(double)encoder_max_tick)*2*rigid2d::PI;
-            double delta_rad_right = ((double)(curr_right_encoder - pre_right_encoder)/(double)encoder_max_tick)*2*rigid2d::PI;
+            double delta_rad_left = ((double)(curr_left_encoder - pre_left_encoder)/(double)encoder_max_tick)*2*rigid2d::PI;//*4;
+            double delta_rad_right = ((double)(curr_right_encoder - pre_right_encoder)/(double)encoder_max_tick)*2*rigid2d::PI;//*4;
 
             sensor_msgs::JointState joint_msg;
             joint_msg.header.stamp = ros::Time::now();
@@ -149,6 +149,8 @@ class TurtleInterface
         /// \brief The main control loop state machine
         void main_loop(const ros::TimerEvent &)
         {
+
+
             if (wheel_pub_flag)
             {
                 publishWheelCommand();
@@ -156,9 +158,12 @@ class TurtleInterface
             
             if (joint_pub_flag)
             {
-                
+
                 publishJointState();
             }
+
+
+
             
         }
 
@@ -170,6 +175,10 @@ class TurtleInterface
             if (vel.linear.x > max_trans_vel)
             {
                 curr_lin_vel = max_trans_vel;
+            }
+            else if (vel.linear.x < -max_trans_vel)
+            {
+                curr_lin_vel = -max_trans_vel;
             }
             else
             {
@@ -199,9 +208,13 @@ class TurtleInterface
                 first_right_encoder = sensor_data.right_encoder;
                 first_encoder_flag = false;
             }
-
-            pre_left_encoder = curr_left_encoder;
-            pre_right_encoder = curr_right_encoder;
+            if (counter < 5){
+                counter++;
+            }else{
+                pre_left_encoder = curr_left_encoder;
+                pre_right_encoder = curr_right_encoder;
+                counter = 0;
+            }
 
             curr_left_encoder = sensor_data.left_encoder - first_left_encoder;
             curr_right_encoder = sensor_data.right_encoder - first_right_encoder;

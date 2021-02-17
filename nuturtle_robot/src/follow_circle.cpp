@@ -67,13 +67,13 @@ class FollowCircle
             geometry_msgs::Twist vel_msg;
             if (mode == "clockwise")
             {
-                vel_msg.linear.x = speed;
-                vel_msg.angular.z = angular_speed;
+                vel_msg.linear.x = -speed;
+                vel_msg.angular.z = -angular_speed;
             }
             else if (mode == "counter_clockwise")
             {
-                vel_msg.linear.x = -speed;
-                vel_msg.angular.z = -angular_speed;
+                vel_msg.linear.x = speed;
+                vel_msg.angular.z = angular_speed;
             }
             else
             {
