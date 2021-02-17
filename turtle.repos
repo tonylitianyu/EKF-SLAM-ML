@@ -1,0 +1,9 @@
+repositories:
+  hw:
+    type: git
+    url: https://github.com/ME495-Navigation/assignment-tonylitianyu.git
+    version: main
+  nuturtlebot:
+    type: git
+    url: https://github.com/ME495-Navigation/nuturtlebot.git
+    version: master
