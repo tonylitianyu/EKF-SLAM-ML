@@ -1,5 +1,5 @@
-#include "../include/rigid2d/rigid2d.hpp"
-#include "../include/rigid2d/diff_drive.hpp"
+#include "rigid2d/rigid2d.hpp"
+#include "rigid2d/diff_drive.hpp"
 #include<iostream>
 
 int main() {

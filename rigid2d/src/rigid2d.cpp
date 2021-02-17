@@ -1,4 +1,4 @@
-#include "../include/rigid2d/rigid2d.hpp"
+#include "rigid2d/rigid2d.hpp"
 #include<iostream>
 
 rigid2d::Vector2D::Vector2D(){

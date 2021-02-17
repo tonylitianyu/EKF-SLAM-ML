@@ -1,4 +1,4 @@
-#include "../include/rigid2d/diff_drive.hpp"
+#include "rigid2d/diff_drive.hpp"
 #include<iostream>
 
 
