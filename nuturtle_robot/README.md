@@ -35,16 +35,21 @@ roslaunch nuturtle_robot odom_teleop.launch robot:=boba.local circle:=true
 ```
 Final location: (0.0003, 0.0002, 0.0)
 ```
+
+Video: https://youtu.be/sd1qR_T_WwQ
 <gif>
- 
+<br></br>
  
 #### Rotate the robot clockwise and counter clockwise
 
 ```
 Final location: (0.003, -0.0005, 0.0)
 ```
-<gif>
 
+Video: https://youtu.be/vGaYTb6V9do
+<gif>
+<br></br>
+  
 #### Drive the robot in a circle, clockwise and counter clockwise
 
 ```
@@ -53,8 +58,10 @@ Circle radius = 0.2
 Final location: (0.0198, -0.00066, 0.0)
 ```
 
+Video: https://youtu.be/70wXSg3KgK4
 <gif>
-
+<br></br>
+  
 #### Try one of the previous experiments again. Drive the robot in a circle, clockwise and counter clockwise
 
 ```
@@ -65,6 +72,7 @@ Final location: (-0.1058, 0.0165, 0.0)
 
 <b>Answer:</b> It made different. The result became significantly worse. I increased the moving speed by more than 5 times and increased the radius of the circle slightly by 0.05.
 
+Video: https://youtu.be/nbap-o6Ijz0
 <gif>
 
 
