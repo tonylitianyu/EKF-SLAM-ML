@@ -108,7 +108,7 @@ generate_messages(
 catkin_package(
   # INCLUDE_DIRS
   # LIBRARIES rigid2d
-  CATKIN_DEPENDS geometry_msgs nuturtlebot rigid2d roscpp sensor_msgs
+  CATKIN_DEPENDS geometry_msgs message_runtime nuturtlebot rigid2d roscpp sensor_msgs
 #  DEPENDS system_lib
 )
 
@@ -227,4 +227,6 @@ target_link_libraries(turtle_interface_test
 	${catkin_LIBRARIES}
 )
 
-add_rostest(tests/turtle_interface.test)
+if(CATKIN_ENABLE_TESTING)
+  add_rostest(tests/turtle_interface.test)
+endif()
