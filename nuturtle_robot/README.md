@@ -36,7 +36,7 @@ roslaunch nuturtle_robot odom_teleop.launch robot:=boba.local circle:=true
 Final location: (0.0003, 0.0002, 0.0)
 ```
 
-<b>Video:</b> https://youtu.be/sd1qR_T_WwQ
+<b>Video:</b> https://youtu.be/sd1qR_T_WwQ  
 <img src="gifs/trans.gif" width="500">
 <br></br>
  
