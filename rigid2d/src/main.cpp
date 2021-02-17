@@ -3,16 +3,40 @@
 #include<iostream>
 
 int main() {
-    // double left_angle = 0.025455;
-    // double right_angle = -0.025455;
-    // double left_angle = 0.024242;
-    // double right_angle = -0.024242;
-    
+    // // double left_angle = 0.025455;
+    // // double right_angle = -0.025455;
+    // // double left_angle = 0.024242;
+    // // double right_angle = -0.024242;
+
     // rigid2d::DiffDrive dd = rigid2d::DiffDrive(0.16, 0.033);
 
-    // dd.updatePose(left_angle, right_angle);
+    // rigid2d::Vector2D max_lin = {0.0,0.0};
+    // rigid2d::Twist2D max_ts = rigid2d::Twist2D(2.84, max_lin);
+    // rigid2d::Vector2D wheel_vel_m = dd.calculateWheelVelocity(max_ts);
+    // double max_wheel_vel = (fabs(wheel_vel_m.x)/100.0)*0.99;
+    
 
-    // printf("%f \n", dd.getTheta());
+
+    // // dd.updatePose(left_angle, right_angle);
+
+    // // printf("%f \n", dd.getTheta());
+
+    // double speed = 0.16;
+    // double radius = 0.2;
+    // double angular_speed = speed/radius;
+
+    // rigid2d::Vector2D lin = {speed,0.0};
+    // rigid2d::Twist2D tss = rigid2d::Twist2D(angular_speed, lin);
+    // rigid2d::Vector2D wheel_vel = dd.calculateWheelVelocity(tss);
+
+    // double delta_wheel_left = wheel_vel.x;
+    // double delta_wheel_right = wheel_vel.y;
+
+    // double okl = ((delta_wheel_left/100.0)/max_wheel_vel)*256;
+    // double okr = ((delta_wheel_right/100.0)/max_wheel_vel)*256;
+
+    // printf("left wheel command: %f \n", okl);
+    // printf("right wheel command: %f \n", okr);
 
 
 

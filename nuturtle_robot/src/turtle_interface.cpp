@@ -115,8 +115,28 @@ class TurtleInterface
             double delta_wheel_left = wheel_vel.x;
             double delta_wheel_right = wheel_vel.y;
 
-            wheel_cmd.left_velocity = ((delta_wheel_left/100.0)/max_wheel_vel)*256;
-            wheel_cmd.right_velocity = ((delta_wheel_right/100.0)/max_wheel_vel)*256;
+
+            double left_wheel_command = ((delta_wheel_left/100.0)/max_wheel_vel)*256.0;
+            double right_wheel_command = ((delta_wheel_right/100.0)/max_wheel_vel)*256.0;
+
+            if (left_wheel_command > 256.0){
+                left_wheel_command = 256.0;
+            }else if (left_wheel_command < -256.0){
+                left_wheel_command = -256.0;
+            }
+
+            if (right_wheel_command > 256.0){
+                right_wheel_command = 256.0;
+            }else if (right_wheel_command < -256.0){
+                right_wheel_command = -256.0;
+            }
+
+
+            wheel_cmd.left_velocity = left_wheel_command;
+            wheel_cmd.right_velocity = right_wheel_command;
+
+            
+
 
             wheel_pub.publish(wheel_cmd);
         }
@@ -168,30 +188,11 @@ class TurtleInterface
         /// \param vel - velocity command
         void callback_vel(const geometry_msgs::Twist & vel)
         {
-            if (vel.linear.x > max_trans_vel)
-            {
-                curr_lin_vel = max_trans_vel;
-            }
-            else if (vel.linear.x < -max_trans_vel)
-            {
-                curr_lin_vel = -max_trans_vel;
-            }
-            else
-            {
-                curr_lin_vel = vel.linear.x;
-            }
 
-            if (vel.angular.z > max_rota_vel)
-            {
-                curr_ang_vel = max_rota_vel;
-            }
-            else if (vel.angular.z < -max_rota_vel)
-            {
-                curr_ang_vel = -max_rota_vel;
-            }else
-            {
-                curr_ang_vel = vel.angular.z;
-            }
+            curr_lin_vel = vel.linear.x;
+            
+            curr_ang_vel = vel.angular.z;
+
             wheel_pub_flag = true;
         }
 
