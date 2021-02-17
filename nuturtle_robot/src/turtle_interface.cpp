@@ -150,7 +150,6 @@ class TurtleInterface
         void main_loop(const ros::TimerEvent &)
         {
 
-
             if (wheel_pub_flag)
             {
                 publishWheelCommand();
@@ -162,9 +161,6 @@ class TurtleInterface
                 publishJointState();
             }
 
-
-
-            
         }
 
         

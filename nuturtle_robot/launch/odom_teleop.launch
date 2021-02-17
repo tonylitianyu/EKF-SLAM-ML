@@ -6,7 +6,7 @@
     <group if="$(arg circle)">
         <node pkg="nuturtle_robot" type="follow_circle" name="follow_circle">
             <param name="speed" value="0.03"/>
-            <param name="radius" value="0.2"/>
+            <param name="radius" value="0.20"/>
         </node>
     </group>
     <group unless="$(arg circle)">
