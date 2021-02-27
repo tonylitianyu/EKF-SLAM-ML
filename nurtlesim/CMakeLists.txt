@@ -9,11 +9,14 @@ project(nurtlesim)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
     geometry_msgs
+    nav_msgs
     nuturtlebot
     rigid2d
     roscpp
     sensor_msgs
-	std_msgs
+    std_msgs
+    tf2_ros
+    visualization_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -108,7 +111,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES nurtlesim
-   CATKIN_DEPENDS geometry_msgs nuturtlebot rigid2d roscpp sensor_msgs
+   CATKIN_DEPENDS geometry_msgs nav_msgs nuturtlebot rigid2d roscpp sensor_msgs visualization_msgs
 #  DEPENDS system_lib
 )
 
