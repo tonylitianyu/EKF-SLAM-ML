@@ -30,6 +30,172 @@
 #include <cmath>
 
 
+
+
+/// \brief - the simulation class for tubes
+class SimTube{
+    private:
+        ros::NodeHandle n;
+        std::vector<double> coor_x;
+        std::vector<double> coor_y;
+        double radius;
+        double covar_sensor_x;
+        double covar_sensor_y;
+        double max_visible_dis;
+
+
+        ros::Publisher true_tube_pub;
+        ros::Publisher fake_tube_pub;
+        ros::Timer timer;
+        
+
+        unsigned seed;
+
+
+        double turtle_x;
+        double turtle_y;
+
+
+
+    public:
+        /// \brief create the initial setup for the tubes in the simulator
+        ///
+        /// \param nh - the node handle for ROS
+        /// \param coor_x - the x coordinates of the tubes
+        /// \param coor_y - the y coordinates of the tubes
+        /// \param radius - the raidus of the tube
+        SimTube(ros::NodeHandle nh, std::vector<double> coor_x, std::vector<double> coor_y, double radius, double covar_sensor_x,
+                double covar_sensor_y, double max_visible_dis):
+        timer(nh.createTimer(ros::Duration(0.1), &SimTube::main_loop, this)),
+        coor_x(coor_x),
+        coor_y(coor_y),
+        radius(radius),
+        true_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("true_sensor", 10, true)),
+        fake_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("fake_sensor", 10, true)),
+        covar_sensor_x(covar_sensor_x),
+        covar_sensor_y(covar_sensor_y),
+        max_visible_dis(max_visible_dis),
+        seed(std::chrono::system_clock::now().time_since_epoch().count()),
+        turtle_x(0.0),
+        turtle_y(0.0)
+        {
+            visualization_msgs::MarkerArray true_tube_marker_array;
+            for (int i = 0; i < coor_x.size(); i++){
+                visualization_msgs::Marker true_tube_marker;
+                true_tube_marker.header.frame_id = "world";
+                true_tube_marker.header.stamp = ros::Time::now();
+                true_tube_marker.ns = "real";
+                true_tube_marker.action = visualization_msgs::Marker::ADD;
+
+                true_tube_marker.id = i;
+                true_tube_marker.type = visualization_msgs::Marker::CYLINDER;
+                true_tube_marker.scale.x = 0.1;
+                true_tube_marker.scale.y = 0.1;
+                true_tube_marker.scale.z = 0.5;
+                true_tube_marker.color.g = 1.0;
+                true_tube_marker.color.a = 1.0;
+
+                true_tube_marker.pose.position.x = coor_x[i];
+                true_tube_marker.pose.position.y = coor_y[i];
+                true_tube_marker.pose.orientation.w = 1.0;
+
+                true_tube_marker_array.markers.push_back(true_tube_marker);
+
+            }
+
+            //true_tube_pub.publish(true_tube_marker_array);
+
+
+        }
+
+        void updateTurtlePos(double x, double y){
+            turtle_x = x;
+            turtle_y = y;
+        }
+
+        double distanceToTurtle(double tube_x, double tube_y){
+            return sqrt(pow(turtle_x-tube_x,2)+pow(turtle_y-tube_y,2));
+        }
+
+        bool tubeIsVisible(double tube_x, double tube_y){
+            double distance = distanceToTurtle(tube_x, tube_y);
+            
+            if (distance < max_visible_dis){
+                
+                return true;
+            }else{
+                return false;
+            }
+        }
+
+        void publishMeasuredTube(){
+            visualization_msgs::MarkerArray fake_tube_marker_array;
+            std::default_random_engine random_x(seed);
+            std::normal_distribution<double> x_noise(0.0, covar_sensor_x);
+
+            std::default_random_engine random_y(seed);
+            std::normal_distribution<double> y_noise(0.0, covar_sensor_y);
+
+            for (int j = 0; j < coor_x.size(); j++){
+                visualization_msgs::Marker fake_tube_marker;
+                fake_tube_marker.header.frame_id = "world";
+                fake_tube_marker.header.stamp = ros::Time::now();
+                fake_tube_marker.ns = "fake";
+                fake_tube_marker.lifetime = ros::Duration(0.1);
+                
+
+                fake_tube_marker.id = j;
+                fake_tube_marker.type = visualization_msgs::Marker::CYLINDER;
+                fake_tube_marker.scale.x = 0.1;
+                fake_tube_marker.scale.y = 0.1;
+                fake_tube_marker.scale.z = 0.5;
+                fake_tube_marker.color.r = 1.0;
+                fake_tube_marker.color.a = 1.0;
+
+
+                fake_tube_marker.pose.position.x = coor_x[j]+x_noise(random_x);
+                fake_tube_marker.pose.position.y = coor_y[j]+y_noise(random_y);
+                fake_tube_marker.pose.orientation.w = 1.0;
+
+
+                if (tubeIsVisible(fake_tube_marker.pose.position.x, fake_tube_marker.pose.position.y)){
+                    fake_tube_marker.action = visualization_msgs::Marker::ADD;
+                }else{
+                    fake_tube_marker.action = visualization_msgs::Marker::DELETE;
+                }
+
+                fake_tube_marker_array.markers.push_back(fake_tube_marker);
+            }
+
+            fake_tube_pub.publish(fake_tube_marker_array);
+        }
+
+        std::vector<double> findCollisionTubePos(double wheel_base){
+            std::vector<double> tube_pos;
+            for (int i = 0; i < coor_x.size(); i++){
+                double dis = distanceToTurtle(coor_x[i], coor_y[i]);
+                if (dis < (radius + wheel_base)){
+                    tube_pos.push_back(coor_x[i]);
+                    tube_pos.push_back(coor_y[i]);
+                    return tube_pos;
+                }
+            }
+
+            return tube_pos;
+        }
+
+        double getTubeRadius(){
+            return radius;
+        }
+
+
+        /// \brief The main control loop state machine
+        void main_loop(const ros::TimerEvent &){
+            publishMeasuredTube();
+        }
+};
+
+
 /// \brief - the simulation class for diff drive turtle robot
 class SimTurtle{
     private:
@@ -64,6 +230,8 @@ class SimTurtle{
 
         nav_msgs::Path real_path;
 
+        SimTube & tubes;
+
     public:
         /// \brief create the initial setup for the simulator
         ///
@@ -80,12 +248,13 @@ class SimTurtle{
         /// \param slip_max - Maximum slip noise
         SimTurtle(ros::NodeHandle nh, std::string left_wheel_joint_str, std::string right_wheel_joint_str, 
                             double wheel_base_val, double wheel_radius_val, double vx_mu, double vx_std, 
-                            double the_mu, double the_std, double slip_min, double slip_max):
+                            double the_mu, double the_std, double slip_min, double slip_max, SimTube & tubes):
         timer(nh.createTimer(ros::Duration(0.01), &SimTurtle::main_loop, this)),
         vel_sub(nh.subscribe("cmd_vel", 1000, &SimTurtle::callback_vel, this)),
         joint_pub(nh.advertise<sensor_msgs::JointState>("joint_states", 100)),
         robot_truth_marker_pub(nh.advertise<visualization_msgs::Marker>("ground_truth_turtle", 100)),
         path_pub(nh.advertise<nav_msgs::Path>("real_path", 100)),
+        wheel_base(wheel_base_val),
         dd(rigid2d::DiffDrive(wheel_base_val, wheel_radius_val)),
         left_wheel_angle(0.0),
         right_wheel_angle(0.0),
@@ -98,7 +267,8 @@ class SimTurtle{
         slip_min(slip_min),
         slip_max(slip_max),
         //source:https://stackoverflow.com/questions/32889309/adding-gaussian-noise
-        seed(std::chrono::system_clock::now().time_since_epoch().count())
+        seed(std::chrono::system_clock::now().time_since_epoch().count()),
+        tubes(tubes)
         {
         }
 
@@ -163,6 +333,8 @@ class SimTurtle{
             path_pub.publish(real_path);
 
 
+            
+
         }
 
         /// \brief callback function for velocity command
@@ -209,6 +381,9 @@ class SimTurtle{
 
             dd.updatePose(delta_wheel_left, delta_wheel_right);
 
+            tubes.updateTurtlePos(dd.getPosition().x, dd.getPosition().y);
+            checkCollision();
+
             left_wheel_angle += delta_wheel_left;  
             right_wheel_angle += delta_wheel_right;
 
@@ -226,162 +401,45 @@ class SimTurtle{
         }
 
 
+
+        void checkCollision(){
+            std::vector<double> colliding_tube = tubes.findCollisionTubePos(wheel_base);
+            if (colliding_tube.size() != 0){
+                moveAfterCollision(colliding_tube[0], colliding_tube[1]);
+            }
+        }
+
+        void moveAfterCollision(double tube_x, double tube_y){
+
+
+            double dx = tube_x-dd.getPosition().x;
+            double dy = tube_y-dd.getPosition().y;
+
+            double angle = atan2(dy, dx);
+            double correct_dis = tubes.getTubeRadius() + wheel_base;
+            double correct_dy = correct_dis*sin(angle);
+            double correct_dx = correct_dis*cos(angle);
+
+            double correct_x = tube_x - correct_dx;
+            double correct_y = tube_y - correct_dy;
+
+
+            rigid2d::Vector2D set_tran = rigid2d::Vector2D(correct_x,correct_y);
+            dd = rigid2d::DiffDrive(wheel_base, wheel_radius, set_tran, dd.getTheta());
+
+        }
+
         /// \brief The main control loop state machine
         void main_loop(const ros::TimerEvent &){
             publishJointState();
             publishGroundTruthLocation();
         }
 
-        double get_turtle_x(){
-            return dd.getPosition().x;
-        }
 
-        double get_turtle_y(){
-            return dd.getPosition().y;
-        }
 
 
         
 };
-
-/// \brief - the simulation class for tubes
-class SimTube{
-    private:
-        ros::NodeHandle n;
-        std::vector<double> coor_x;
-        std::vector<double> coor_y;
-        double radius;
-        double covar_sensor_x;
-        double covar_sensor_y;
-        double max_visible_dis;
-
-
-        ros::Publisher true_tube_pub;
-        ros::Publisher fake_tube_pub;
-        ros::Timer timer;
-        
-
-        unsigned seed;
-
-        SimTurtle & turtle;
-
-
-
-    public:
-        /// \brief create the initial setup for the tubes in the simulator
-        ///
-        /// \param nh - the node handle for ROS
-        /// \param coor_x - the x coordinates of the tubes
-        /// \param coor_y - the y coordinates of the tubes
-        /// \param radius - the raidus of the tube
-        SimTube(ros::NodeHandle nh, std::vector<double> coor_x, std::vector<double> coor_y, double radius, double covar_sensor_x,
-                double covar_sensor_y, double max_visible_dis, SimTurtle & turtle):
-        timer(nh.createTimer(ros::Duration(0.1), &SimTube::main_loop, this)),
-        coor_x(coor_x),
-        coor_y(coor_y),
-        radius(radius),
-        true_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("true_sensor", 10, true)),
-        fake_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("fake_sensor", 10, true)),
-        covar_sensor_x(covar_sensor_x),
-        covar_sensor_y(covar_sensor_y),
-        max_visible_dis(max_visible_dis),
-        seed(std::chrono::system_clock::now().time_since_epoch().count()),
-        turtle(turtle)
-        {
-            visualization_msgs::MarkerArray true_tube_marker_array;
-            for (int i = 0; i < coor_x.size(); i++){
-                visualization_msgs::Marker true_tube_marker;
-                true_tube_marker.header.frame_id = "world";
-                true_tube_marker.header.stamp = ros::Time::now();
-                true_tube_marker.ns = "real";
-                true_tube_marker.action = visualization_msgs::Marker::ADD;
-
-                true_tube_marker.id = i;
-                true_tube_marker.type = visualization_msgs::Marker::CYLINDER;
-                true_tube_marker.scale.x = 0.1;
-                true_tube_marker.scale.y = 0.1;
-                true_tube_marker.scale.z = 0.5;
-                true_tube_marker.color.g = 1.0;
-                true_tube_marker.color.a = 1.0;
-
-                true_tube_marker.pose.position.x = coor_x[i];
-                true_tube_marker.pose.position.y = coor_y[i];
-                true_tube_marker.pose.orientation.w = 1.0;
-
-                true_tube_marker_array.markers.push_back(true_tube_marker);
-
-            }
-
-            //true_tube_pub.publish(true_tube_marker_array);
-
-
-        }
-
-        double distanceToTurtle(double tube_x, double tube_y){
-            double turtle_x = turtle.get_turtle_x();
-            double turtle_y = turtle.get_turtle_y();
-            return sqrt(pow(turtle_x-tube_x,2)+pow(turtle_y-tube_y,2));
-        }
-
-        bool tubeIsVisible(double tube_x, double tube_y){
-            double distance = distanceToTurtle(tube_x, tube_y);
-            
-            if (distance < max_visible_dis){
-                
-                return true;
-            }else{
-                return false;
-            }
-        }
-
-        void publishMeasuredTube(){
-            visualization_msgs::MarkerArray fake_tube_marker_array;
-            std::default_random_engine random_x(seed);
-            std::normal_distribution<double> x_noise(0.0, covar_sensor_x);
-
-            std::default_random_engine random_y(seed);
-            std::normal_distribution<double> y_noise(0.0, covar_sensor_y);
-
-            for (int j = 0; j < coor_x.size(); j++){
-                visualization_msgs::Marker fake_tube_marker;
-                fake_tube_marker.header.frame_id = "world";
-                fake_tube_marker.header.stamp = ros::Time::now();
-                fake_tube_marker.ns = "fake";
-                fake_tube_marker.lifetime = ros::Duration(0.1);
-                
-
-                fake_tube_marker.id = j;
-                fake_tube_marker.type = visualization_msgs::Marker::CYLINDER;
-                fake_tube_marker.scale.x = 0.1;
-                fake_tube_marker.scale.y = 0.1;
-                fake_tube_marker.scale.z = 0.5;
-                fake_tube_marker.color.r = 1.0;
-                fake_tube_marker.color.a = 1.0;
-
-
-                fake_tube_marker.pose.position.x = coor_x[j]+x_noise(random_x);
-                fake_tube_marker.pose.position.y = coor_y[j]+y_noise(random_y);
-                fake_tube_marker.pose.orientation.w = 1.0;
-
-
-                if (tubeIsVisible(coor_x[j], coor_y[j])){
-                    fake_tube_marker.action = visualization_msgs::Marker::ADD;
-                }else{
-                    fake_tube_marker.action = visualization_msgs::Marker::DELETE;
-                }
-
-                fake_tube_marker_array.markers.push_back(fake_tube_marker);
-            }
-
-            fake_tube_pub.publish(fake_tube_marker_array);
-        }
-
-        /// \brief The main control loop state machine
-        void main_loop(const ros::TimerEvent &){
-            publishMeasuredTube();
-        }
-};
-
 
 
 int main(int argc, char **argv)
@@ -537,11 +595,12 @@ int main(int argc, char **argv)
         ROS_ERROR("Unable to get param 'max_visible_dis'");
     }
 
+    SimTube stube = SimTube(n, tube_coor_x, tube_coor_y, tube_radius, covar_sensor_x, covar_sensor_y, max_visible_dis);
 
     SimTurtle sturtle = SimTurtle(n, left_wheel_joint, right_wheel_joint, wheel_base, wheel_radius,
-                                vx_mu, vx_std, the_mu, the_std, slip_min, slip_max);
+                                vx_mu, vx_std, the_mu, the_std, slip_min, slip_max, stube);
 
-    SimTube stube = SimTube(n, tube_coor_x, tube_coor_y, tube_radius, covar_sensor_x, covar_sensor_y, max_visible_dis, sturtle);
+
     ros::spin();
 
 
