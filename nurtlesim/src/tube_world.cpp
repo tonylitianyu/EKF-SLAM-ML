@@ -255,6 +255,7 @@ class SimTurtle{
         robot_truth_marker_pub(nh.advertise<visualization_msgs::Marker>("ground_truth_turtle", 100)),
         path_pub(nh.advertise<nav_msgs::Path>("real_path", 100)),
         wheel_base(wheel_base_val),
+        wheel_radius(wheel_radius_val),
         dd(rigid2d::DiffDrive(wheel_base_val, wheel_radius_val)),
         left_wheel_angle(0.0),
         right_wheel_angle(0.0),
@@ -363,6 +364,7 @@ class SimTurtle{
 
         void publishJointState(){
             rigid2d::Vector2D lin = {x_vel,y_vel};
+            
             rigid2d::Twist2D ts = rigid2d::Twist2D(ang_vel, lin);
             rigid2d::Vector2D wheel_vel = dd.calculateWheelVelocity(ts);
             
@@ -379,12 +381,14 @@ class SimTurtle{
             delta_wheel_left += left_noise(random_left)*delta_wheel_left;
             delta_wheel_right += right_noise(random_right)*delta_wheel_right;
 
+
             dd.updatePose(delta_wheel_left, delta_wheel_right);
 
             tubes.updateTurtlePos(dd.getPosition().x, dd.getPosition().y);
             checkCollision();
 
             left_wheel_angle += delta_wheel_left;  
+            
             right_wheel_angle += delta_wheel_right;
 
 
