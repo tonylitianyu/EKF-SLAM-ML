@@ -26,6 +26,8 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2/LinearMath/Quaternion.h"
 #include "rigid2d/SetPose.h"
+#include "visualization_msgs/MarkerArray.h"
+#include "visualization_msgs/Marker.h"
 #include <cstdio>
 #include <armadillo>
 #include <random>
@@ -170,26 +172,40 @@ class SLAM
         Odometer & odometer;
         
         int n;
+
+        //motion model
         mat state;
         mat wt; //process noise for robot
         mat sigma;
         mat Q;
         mat L;
 
+        //measurement model
+        mat R;
+        mat sensor_reading;
 
+
+        double vx_std;
+        double the_std;
+
+        ros::Subscriber fake_sensor_sub;
+
+        int state_machine;
 
     public:
         SLAM(ros::NodeHandle nh, std::string odom_frame_id_str, 
-                double wheel_base_val, double wheel_radius_val, Odometer & odometer,
-                std::vector<double> tube_coor_x, std::vector<double> tube_coor_y):
+                double wheel_base_val, double wheel_radius_val, Odometer & odometer, double vx_std, double the_std):
         timer(nh.createTimer(ros::Duration(0.01), &SLAM::main_loop, this)),
+        fake_sensor_sub(nh.subscribe("fake_sensor", 1000, &SLAM::callback_fake_sensor, this)),
         odom_frame_id(odom_frame_id_str),
         wheel_base(wheel_base_val),
         wheel_radius(wheel_radius_val),
-        odometer(odometer)
+        odometer(odometer),
+        vx_std(vx_std),
+        the_std(the_std)
         {
 
-            EKF_SLAM_init();
+            state_machine = 0;
         }
 
         void publishFrames(){
@@ -222,6 +238,27 @@ class SLAM
         }
 
 
+        void landmark_init(){
+            for (int i = 3; i < 3+2*n;){
+                double coor_x = sensor_reading(i-3, 0);
+                double coor_y = sensor_reading(i-2, 0);
+
+                double r = sqrt(pow(coor_x - state(1,0),2)+pow(coor_y - state(2,0),2));
+                double phi = atan2(coor_y - state(2,0), coor_x - state(1,0));
+
+                //mx
+                state(i,0) = state(1,0) + r*cos(phi+state(0,0));
+
+                //my
+                state(i+1,0) = state(2,0) + r*sin(phi+state(0,0));
+
+                i += 2;
+            }
+
+
+        }
+
+
         //state EKF_SLAM(odometry, sensor)
         void EKF_SLAM_init(){
 
@@ -231,9 +268,10 @@ class SLAM
             wt = zeros<mat>(3,1);
 
             mat sigma_top_left = zeros<mat>(3,3);
-            mat sigma_top_right = zeros<mat>(3,3);
+            mat sigma_top_right = zeros<mat>(3,2*n);
             mat sigma_bot_left = zeros<mat>(2*n,3);
             mat sigma_bot_right = ones<mat>(2*n,2*n);
+            sigma_bot_right.eye(2*n, 2*n);
             sigma_bot_right = sigma_bot_right*10000;
 
             mat sigma_top = join_horiz(sigma_top_left,sigma_top_right);
@@ -241,31 +279,18 @@ class SLAM
             sigma = join_vert(sigma_top, sigma_bot);
 
 
+
             Q = zeros<mat>(3+2*n, 3+2*n);
-            Q(0,0) = 0.1;
-            Q(1,1) = 0.0;
-            Q(2,2) = 0.1;
+            Q(0,0) = the_std;
+            Q(1,1) = vx_std;
+            Q(2,2) = 0.0;
 
 
-            //get process noise for robot
-            mat L = chol(Q,"lower");
-            mat u = zeros<mat>(3+2*n,1);
-            for (int i = 0; i < (3+2*n); i++){
-                std::normal_distribution<> d(0.0, Q(i,i));
-                u(i,0) = d(get_random());
-            }
-
-            mat v = L*u;
-            wt = v.rows(0,2);
-
-
+            //initialize landmark
+            landmark_init();
             
         }
 
-
-        void generateProcessNoise(){
-
-        }
 
         void EKF_SLAM_prediction(){
             //if ddelta = 0
@@ -287,7 +312,7 @@ class SLAM
             double y = state(2,0);
 
 
-            if (dtheta < 0.0001){
+            if (fabs(dtheta) < 0.0001){
                 //update state
                 update(1,0) = dx*cos(theta);
                 update(2,0) = dx*sin(theta);
@@ -301,7 +326,7 @@ class SLAM
 
             }else{
                 update(0,0) = dtheta;
-                update(1,0) = -(dx/dtheta)*sin(theta)+(dx/dtheta)*sin(theta+dtheta);
+                update(1,0) = -(dx/dtheta)*sin(theta) + (dx/dtheta)*sin(theta+dtheta);
                 update(2,0) = (dx/dtheta)*cos(theta) - (dx/dtheta)*cos(theta+dtheta);
 
 
@@ -318,21 +343,122 @@ class SLAM
             state = next_state;
 
 
+
             mat next_sigma = At*sigma*At.t() + Q;
 
             sigma = next_sigma;
 
+        }
+
+
+        void EKF_SLAM_correction(){
+            double theta = state(0,0);
+            double x = state(1,0);
+            double y = state(2,0);
+
+            //////////////////////
+            //////////////////////
+
+            mat H = zeros<mat>(2*n, 3+2*n);
+            mat z_hat = zeros<mat>(2*n, 1);
+            mat z_sensor = zeros<mat>(2*n, 1);
+
+            std::cout << state << std::endl;
+
+            for (int i = 0; i < 2*n;){
+                double delta_x = state(i+3,0) - x;
+                double delta_y = state(i+4,0) - y;
+                double d = pow(delta_x,2) + pow(delta_y,2);
+                
+
+                //expected measurement
+                //rj
+                z_hat(i,0) = sqrt(d);
+                //phij
+                z_hat(i+1,0) = atan2(delta_y, delta_x) - theta;
+
+                mat Hj;
+                mat Hj_left = {{0,-delta_x/sqrt(d), -delta_y/sqrt(d)}, {-1, delta_y/d, -delta_x/d}};
+                mat Hj_mid_left = zeros<mat>(2, 2*((i/2)+1-1));
+                mat Hj_mid_right = {{delta_x/sqrt(d), delta_y/sqrt(d)},{-delta_y/d, delta_x/d}};
+                mat Hj_right = zeros<mat>(2, 2*n - 2*((i/2)+1));
+                Hj = join_horiz(Hj_left, Hj_mid_left);
+                Hj = join_horiz(Hj, Hj_mid_right);
+                Hj = join_horiz(Hj, Hj_right);
+
+                H(span(i,i+1),span(0, 3+2*n-1)) = Hj;
+
+
+
+                //z sensor
+                double delta_x_sensor = sensor_reading(i,0) - x;
+                double delta_y_sensor = sensor_reading(i+1,0) - y;
+                double d_sensor = pow(delta_x_sensor,2) + pow(delta_y_sensor,2);
+                z_sensor(i,0) = sqrt(d_sensor);
+                z_sensor(i+1,0) = atan2(delta_y_sensor, delta_x_sensor) - theta;
+
+
+                i +=2;
+
+            }
+
+            mat R = eye(2*n, 2*n)*0.01;
+
+            mat Ki = sigma*H.t()*inv(H*sigma*H.t()+R);
+
+
+            mat next_state = state + Ki*(z_sensor - z_hat);
+            state = next_state;
+
+
+            mat kh = Ki*H;
+            mat e;
+            e.eye( size(kh) );
+            mat next_sigma = (e - kh)*sigma;
+            sigma = next_sigma;
+
+        }
+
+
+        void callback_fake_sensor(const visualization_msgs::MarkerArray &tube){
+            std::vector<visualization_msgs::Marker> fake_tubes = tube.markers;
+            sensor_reading = zeros<mat>(fake_tubes.size()*2,1);
+            for (int i = 0; i < fake_tubes.size(); i++){
+                sensor_reading(i*2,0) = fake_tubes[i].pose.position.x;
+                sensor_reading(i*2+1,0) = fake_tubes[i].pose.position.y;
+
+            }
+
+            if (fake_tubes.size() != 0 && state_machine == 0){
+                state_machine = 1;
+            }
 
 
 
         }
 
 
-
-
         /// \brief The main control loop state machine
         void main_loop(const ros::TimerEvent &){
+
             publishFrames();
+
+            switch(state_machine)
+            {
+                case 0:
+                    break;
+                case 1:
+                    EKF_SLAM_init();
+                    state_machine = 2;
+                    break;
+                case 2:
+                    EKF_SLAM_prediction();
+                    EKF_SLAM_correction();
+                    break;
+                default:
+                    throw std::logic_error("Invalid State");
+
+            }
 
         }
 
@@ -351,14 +477,10 @@ int main(int argc, char **argv)
     double wheel_base;
     double wheel_radius;
 
-    //sensor for tubes
-    double covar_sensor_x;
-    double covar_sensor_y;
-    double max_visible_dis;
 
-    std::vector<double> tube_coor_x;
-    std::vector<double> tube_coor_y;
-    double tube_radius;
+
+    double vx_std;
+    double the_std;
 
     if (n.getParam("odom_frame_id", odom_frame_id))
     {
@@ -408,58 +530,27 @@ int main(int argc, char **argv)
         ROS_ERROR("Unable to get param 'wheel_radius'");
     }
 
-    //////////////sensor for tubes
 
-    if (n.getParam("tube_coor_x", tube_coor_x))
+    if (n.getParam("vx_std", vx_std))
     {
-        ROS_INFO("tube_coor_x");
+        ROS_INFO("vx_std: %f", vx_std);
     }else
     {
-        ROS_ERROR("Unable to get param 'tube_coor_x'");
+        ROS_ERROR("Unable to get param 'vx_std'");
     }
 
-    if (n.getParam("tube_coor_y", tube_coor_y))
+
+    if (n.getParam("the_std", the_std))
     {
-        ROS_INFO("tube_coor_y");
+        ROS_INFO("the_std: %f", the_std);
     }else
     {
-        ROS_ERROR("Unable to get param 'tube_coor_y'");
+        ROS_ERROR("Unable to get param 'the_std'");
     }
 
-    if (n.getParam("tube_radius", tube_radius))
-    {
-        ROS_INFO("tube_radius: %f", tube_radius);
-    }else
-    {
-        ROS_ERROR("Unable to get param 'tube_radius'");
-    }
-
-    if (n.getParam("covar_sensor_x", covar_sensor_x))
-    {
-        ROS_INFO("covar_sensor_x: %f", covar_sensor_x);
-    }else
-    {
-        ROS_ERROR("Unable to get param 'covar_sensor_x'");
-    }
-
-    if (n.getParam("covar_sensor_y", covar_sensor_y))
-    {
-        ROS_INFO("covar_sensor_y: %f", covar_sensor_y);
-    }else
-    {
-        ROS_ERROR("Unable to get param 'covar_sensor_y'");
-    }
-
-    if (n.getParam("max_visible_dis", max_visible_dis))
-    {
-        ROS_INFO("max_visible_dis: %f", max_visible_dis);
-    }else
-    {
-        ROS_ERROR("Unable to get param 'max_visible_dis'");
-    }
 
     Odometer odo_obj = Odometer(n, odom_frame_id, body_frame_id, wheel_base, wheel_radius);
-    SLAM slam_obj = SLAM(n, odom_frame_id, wheel_base, wheel_radius, odo_obj, tube_coor_x, tube_coor_y);
+    SLAM slam_obj = SLAM(n, odom_frame_id, wheel_base, wheel_radius, odo_obj, vx_std, the_std);
     ros::spin();
 
 
