@@ -56,6 +56,7 @@ class SimTube{
         double turtle_y;
 
 
+        double turtle_theta;
 
     public:
         /// \brief create the initial setup for the tubes in the simulator
@@ -77,7 +78,8 @@ class SimTube{
         max_visible_dis(max_visible_dis),
         seed(std::chrono::system_clock::now().time_since_epoch().count()),
         turtle_x(0.0),
-        turtle_y(0.0)
+        turtle_y(0.0),
+        turtle_theta(0.0)
         {
             visualization_msgs::MarkerArray true_tube_marker_array;
             for (int i = 0; i < coor_x.size(); i++){
@@ -108,9 +110,10 @@ class SimTube{
 
         }
 
-        void updateTurtlePos(double x, double y){
+        void updateTurtlePos(double x, double y, double theta){
             turtle_x = x;
             turtle_y = y;
+            turtle_theta = theta;
         }
 
         double distanceToTurtle(double tube_x, double tube_y){
@@ -130,15 +133,18 @@ class SimTube{
 
         void publishMeasuredTube(){
             visualization_msgs::MarkerArray fake_tube_marker_array;
-            std::default_random_engine random_x(seed);
-            std::normal_distribution<double> x_noise(0.0, covar_sensor_x);
+            static std::default_random_engine random_x(seed);
+            static std::normal_distribution<double> x_noise(0.0, covar_sensor_x);
 
-            std::default_random_engine random_y(seed);
-            std::normal_distribution<double> y_noise(0.0, covar_sensor_y);
+            static std::default_random_engine random_y(seed);
+            static std::normal_distribution<double> y_noise(0.0, covar_sensor_y);
+
+
+
 
             for (int j = 0; j < coor_x.size(); j++){
                 visualization_msgs::Marker fake_tube_marker;
-                fake_tube_marker.header.frame_id = "world";
+                fake_tube_marker.header.frame_id = "turtle";
                 fake_tube_marker.header.stamp = ros::Time::now();
                 fake_tube_marker.ns = "fake";
                 fake_tube_marker.lifetime = ros::Duration(0.1);
@@ -148,13 +154,22 @@ class SimTube{
                 fake_tube_marker.type = visualization_msgs::Marker::CYLINDER;
                 fake_tube_marker.scale.x = 0.1;
                 fake_tube_marker.scale.y = 0.1;
-                fake_tube_marker.scale.z = 0.5;
+                fake_tube_marker.scale.z = 0.3;
                 fake_tube_marker.color.r = 1.0;
                 fake_tube_marker.color.a = 1.0;
 
 
-                fake_tube_marker.pose.position.x = coor_x[j]+x_noise(random_x);
-                fake_tube_marker.pose.position.y = coor_y[j]+y_noise(random_y);
+                rigid2d::Vector2D trans = {turtle_x, turtle_y};
+                rigid2d::Transform2D Ttw = rigid2d::Transform2D(trans, turtle_theta).inv();
+
+                rigid2d::Vector2D world_tube = {coor_x[j], coor_y[j]};
+                rigid2d::Vector2D turtle_tube = Ttw(world_tube);
+
+
+                
+                fake_tube_marker.pose.position.x = turtle_tube.x;//+x_noise(random_x);
+                fake_tube_marker.pose.position.y = turtle_tube.y;//+y_noise(random_y);
+                fake_tube_marker.pose.position.z = 0.15;
                 fake_tube_marker.pose.orientation.w = 1.0;
 
 
@@ -345,8 +360,8 @@ class SimTurtle{
             if (vel.linear.x < 0.0001 || vel.linear.x > -0.0001){
                 x_vel = vel.linear.x;
             }else{
-                std::default_random_engine random_x(seed);
-                std::normal_distribution<double> x_noise(vx_mu, vx_std);
+                static std::default_random_engine random_x(seed);
+                static std::normal_distribution<double> x_noise(vx_mu, vx_std);
                 x_vel = vel.linear.x + x_noise(random_x);
             }
 
@@ -354,8 +369,8 @@ class SimTurtle{
             if (vel.angular.z < 0.0001 || vel.angular.z > -0.0001){
                 ang_vel = vel.angular.z;
             }else{
-                std::default_random_engine random_the(seed);
-                std::normal_distribution<double> the_noise(the_mu, the_std);
+                static std::default_random_engine random_the(seed);
+                static std::normal_distribution<double> the_noise(the_mu, the_std);
                 ang_vel = vel.angular.z + the_noise(random_the);
             }
 
@@ -373,10 +388,10 @@ class SimTurtle{
             double delta_wheel_right = (wheel_vel.y/100.0);
 
 
-            std::default_random_engine random_left(seed);
-            std::default_random_engine random_right(seed);
-            std::uniform_real_distribution<double> left_noise(slip_min, slip_max);
-            std::uniform_real_distribution<double> right_noise(slip_min, slip_max);
+            static std::default_random_engine random_left(seed);
+            static std::default_random_engine random_right(seed);
+            static std::uniform_real_distribution<double> left_noise(slip_min, slip_max);
+            static std::uniform_real_distribution<double> right_noise(slip_min, slip_max);
 
             delta_wheel_left += left_noise(random_left)*delta_wheel_left;
             delta_wheel_right += right_noise(random_right)*delta_wheel_right;
@@ -384,7 +399,7 @@ class SimTurtle{
 
             dd.updatePose(delta_wheel_left, delta_wheel_right);
 
-            tubes.updateTurtlePos(dd.getPosition().x, dd.getPosition().y);
+            tubes.updateTurtlePos(dd.getPosition().x, dd.getPosition().y, dd.getTheta());
             checkCollision();
 
             left_wheel_angle += delta_wheel_left;  
@@ -439,6 +454,10 @@ class SimTurtle{
             publishGroundTruthLocation();
         }
 
+
+        rigid2d::DiffDrive getDiffDrive(){
+            return dd;
+        }
 
 
 

@@ -128,6 +128,7 @@ ${catkin_INCLUDE_DIRS}
 add_library(${PROJECT_NAME}
   src/diff_drive.cpp
   src/rigid2d.cpp
+  src/ekf_slam.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -171,6 +172,11 @@ target_link_libraries(${PROJECT_NAME}_fake_turtle
   ${catkin_LIBRARIES}
   ${PROJECT_NAME}
 )
+
+target_link_libraries(rigid2d
+  armadillo
+)
+
 
 #############
 ## Install ##
