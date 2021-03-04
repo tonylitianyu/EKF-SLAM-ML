@@ -95,7 +95,7 @@ void rigid2d::EKF_SLAM::prediction(const rigid2d::Twist2D & twist){
     }
 
 
-    state = state + update;;
+    state = state + update;
 
     mat At = eye(size(A)) + A;
     sigma = At*sigma*At.t() + Q;
@@ -206,4 +206,8 @@ double rigid2d::EKF_SLAM::getStateY(){
 
 double rigid2d::EKF_SLAM::getStateTheta(){
     return state(0,0);
+}
+
+mat rigid2d::EKF_SLAM::getStateLandmark(){
+    return state.rows(3,3+2*n-1);
 }

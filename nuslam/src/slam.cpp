@@ -46,6 +46,7 @@ class Odometer
         ros::NodeHandle n;
         ros::Subscriber joint_state_sub;
         ros::Publisher odom_pub;
+        ros::Publisher odom_path_pub;
         ros::Timer timer;
 
         rigid2d::DiffDrive dd;
@@ -60,6 +61,8 @@ class Odometer
         double left_wheel_angle;
         double right_wheel_angle;
 
+        nav_msgs::Path real_path;
+
     public:
 
         /// \brief create the initial setup for odometer
@@ -72,6 +75,7 @@ class Odometer
         Odometer(ros::NodeHandle nh, std::string odom_frame_id_str, std::string body_frame_id_str, double wheel_base_val, double wheel_radius_val):
         timer(nh.createTimer(ros::Duration(0.01), &Odometer::main_loop, this)),
         joint_state_sub(nh.subscribe("joint_states", 1000, &Odometer::callback_joints, this)),
+        odom_path_pub(nh.advertise<nav_msgs::Path>("odom_path", 100)),
         odom_pub(nh.advertise<nav_msgs::Odometry>("odom", 100)),
         dd(rigid2d::DiffDrive(wheel_base_val, wheel_radius_val)),
         odom_frame_id(odom_frame_id_str),
@@ -113,18 +117,36 @@ class Odometer
             odom_pub.publish(odom);
 
             //source: http://wiki.ros.org/tf2/Tutorials/Writing%20a%20tf2%20broadcaster%20%28C%2B%2B%29
-            geometry_msgs::TransformStamped odom_transform;
-            odom_transform.header.stamp = ros::Time::now();
-            odom_transform.header.frame_id = odom_frame_id;
-            odom_transform.child_frame_id = body_frame_id;
-            odom_transform.transform.translation.x = dd.getPosition().x;
-            odom_transform.transform.translation.y = dd.getPosition().y;
-            odom_transform.transform.translation.z = 0.0;
-            odom_transform.transform.rotation.x = q.x();
-            odom_transform.transform.rotation.y = q.y();
-            odom_transform.transform.rotation.z = q.z();
-            odom_transform.transform.rotation.w = q.w();
-            odom_br.sendTransform(odom_transform);
+            // geometry_msgs::TransformStamped odom_transform;
+            // odom_transform.header.stamp = ros::Time::now();
+            // odom_transform.header.frame_id = odom_frame_id;
+            // odom_transform.child_frame_id = body_frame_id;
+            // odom_transform.transform.translation.x = dd.getPosition().x;
+            // odom_transform.transform.translation.y = dd.getPosition().y;
+            // odom_transform.transform.translation.z = 0.0;
+            // odom_transform.transform.rotation.x = q.x();
+            // odom_transform.transform.rotation.y = q.y();
+            // odom_transform.transform.rotation.z = q.z();
+            // odom_transform.transform.rotation.w = q.w();
+            // odom_br.sendTransform(odom_transform);
+
+            //odom path
+            geometry_msgs::PoseStamped pose;
+            pose.header.stamp = ros::Time::now();
+            pose.header.frame_id = "world";
+            pose.pose.position.x = dd.getPosition().x;
+            pose.pose.position.y = dd.getPosition().y;
+            pose.pose.position.z = 0.0;
+            pose.pose.orientation.x = q.x();
+            pose.pose.orientation.y = q.y();
+            pose.pose.orientation.z = q.z();
+            pose.pose.orientation.w = q.w();
+
+            real_path.header.stamp = ros::Time::now();
+            real_path.header.frame_id = "world";
+            real_path.poses.push_back(pose);
+
+            odom_path_pub.publish(real_path);
 
         }
 
@@ -163,6 +185,7 @@ class SLAM
         ros::Timer timer;
         ros::Subscriber fake_sensor_sub;
         ros::Publisher slam_path_pub;
+        ros::Publisher slam_tube_pub;
         nav_msgs::Path slam_path;
 
         std::string odom_frame_id;
@@ -195,6 +218,7 @@ class SLAM
         timer(nh.createTimer(ros::Duration(0.01), &SLAM::main_loop, this)),
         fake_sensor_sub(nh.subscribe("fake_sensor", 1000, &SLAM::callback_fake_sensor, this)),
         slam_path_pub(nh.advertise<nav_msgs::Path>("slam_path", 100)),
+        slam_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("slam_tube", 10, true)),
         odom_frame_id(odom_frame_id_str),
         wheel_base(wheel_base_val),
         wheel_radius(wheel_radius_val),
@@ -273,6 +297,54 @@ class SLAM
             slam_path.poses.push_back(pose);
 
             slam_path_pub.publish(slam_path);
+
+
+            static tf2_ros::TransformBroadcaster slam_br;
+            geometry_msgs::TransformStamped slam_transform;
+            slam_transform.header.stamp = ros::Time::now();
+            slam_transform.header.frame_id = odom_frame_id;
+            slam_transform.child_frame_id = "base_footprint";
+            slam_transform.transform.translation.x = slam_agent.getStateX();
+            slam_transform.transform.translation.y = slam_agent.getStateY();
+            slam_transform.transform.translation.z = 0.0;
+            slam_transform.transform.rotation.x = slam_ori.x();
+            slam_transform.transform.rotation.y = slam_ori.y();
+            slam_transform.transform.rotation.z = slam_ori.z();
+            slam_transform.transform.rotation.w = slam_ori.w();
+            slam_br.sendTransform(slam_transform);
+
+        }
+
+
+        void publishSLAMLandmark(){
+            mat landmark_state = slam_agent.getStateLandmark();
+            visualization_msgs::MarkerArray slam_tube_marker_array;
+            for (int i = 0; i < n_tubes; i++){
+                visualization_msgs::Marker slam_tube_marker;
+                slam_tube_marker.header.frame_id = "world";
+                slam_tube_marker.header.stamp = ros::Time::now();
+                slam_tube_marker.ns = "landmark";
+                slam_tube_marker.action = visualization_msgs::Marker::ADD;
+                slam_tube_marker.lifetime = ros::Duration(0.1);
+
+                slam_tube_marker.id = i;
+                slam_tube_marker.type = visualization_msgs::Marker::CYLINDER;
+                slam_tube_marker.scale.x = 0.1;
+                slam_tube_marker.scale.y = 0.1;
+                slam_tube_marker.scale.z = 0.3;
+                slam_tube_marker.color.b = 1.0;
+                slam_tube_marker.color.a = 1.0;
+
+                slam_tube_marker.pose.position.x = landmark_state(2*i,0);
+                slam_tube_marker.pose.position.y = landmark_state(2*i+1,0);
+                slam_tube_marker.pose.position.z = 0.15;
+                slam_tube_marker.pose.orientation.w = 1.0;
+
+                slam_tube_marker_array.markers.push_back(slam_tube_marker);
+
+            }
+
+            slam_tube_pub.publish(slam_tube_marker_array);
         }
 
 
@@ -297,6 +369,7 @@ class SLAM
                     slam_agent.measurement(sensor_reading);
 
                     publishSLAMPath();
+                    publishSLAMLandmark();
 
                     break;
                 default:

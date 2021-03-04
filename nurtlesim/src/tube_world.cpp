@@ -215,7 +215,7 @@ class TubeWorld{
             true_turtle_marker.scale.x = 0.1;
             true_turtle_marker.scale.y = 0.1;
             true_turtle_marker.scale.z = 0.1;
-            true_turtle_marker.color.b = 1.0;
+            true_turtle_marker.color.g = 1.0;
             true_turtle_marker.color.a = 1.0;
 
             true_turtle_marker.pose.position.x = dd.getPosition().x;
@@ -229,22 +229,22 @@ class TubeWorld{
             robot_truth_marker_pub.publish(true_turtle_marker);
 
             //add path
-            geometry_msgs::PoseStamped pose;
-            pose.header.stamp = ros::Time::now();
-            pose.header.frame_id = "world";
-            pose.pose.position.x = dd.getPosition().x;
-            pose.pose.position.y = dd.getPosition().y;
-            pose.pose.position.z = 0.0;
-            pose.pose.orientation.x = q.x();
-            pose.pose.orientation.y = q.y();
-            pose.pose.orientation.z = q.z();
-            pose.pose.orientation.w = q.w();
+            // geometry_msgs::PoseStamped pose;
+            // pose.header.stamp = ros::Time::now();
+            // pose.header.frame_id = "world";
+            // pose.pose.position.x = dd.getPosition().x;
+            // pose.pose.position.y = dd.getPosition().y;
+            // pose.pose.position.z = 0.0;
+            // pose.pose.orientation.x = q.x();
+            // pose.pose.orientation.y = q.y();
+            // pose.pose.orientation.z = q.z();
+            // pose.pose.orientation.w = q.w();
 
-            real_path.header.stamp = ros::Time::now();
-            real_path.header.frame_id = "world";
-            real_path.poses.push_back(pose);
+            // real_path.header.stamp = ros::Time::now();
+            // real_path.header.frame_id = "world";
+            // real_path.poses.push_back(pose);
 
-            path_pub.publish(real_path);
+            // path_pub.publish(real_path);
         }
 
 

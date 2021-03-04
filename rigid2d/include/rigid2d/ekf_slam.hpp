@@ -34,6 +34,7 @@ namespace rigid2d
             double getStateX();
             double getStateY();
             double getStateTheta();
+            mat getStateLandmark();
 
         private:
 
