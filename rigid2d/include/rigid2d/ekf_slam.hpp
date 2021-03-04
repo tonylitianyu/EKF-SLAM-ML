@@ -23,16 +23,13 @@ namespace rigid2d
             EKF_SLAM();
 
 
-            /// \brief create a ekfslam object
-            /// \param wheel_base - the distance between two wheels
-            /// \param wheel_radius - the radius of the wheels
             EKF_SLAM(int n_measurements, std::vector<double> process_noise);
 
 
             void prediction(const rigid2d::Twist2D & twist);
 
 
-            void correction(mat sensor_reading);
+            void measurement(mat sensor_reading);
 
             double getStateX();
             double getStateY();

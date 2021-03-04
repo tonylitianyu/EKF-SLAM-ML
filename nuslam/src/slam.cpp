@@ -294,7 +294,7 @@ class SLAM
 
                     slam_agent.prediction(odometer.getCurrentTwist());
                     
-                    slam_agent.correction(sensor_reading);
+                    slam_agent.measurement(sensor_reading);
 
                     publishSLAMPath();
 

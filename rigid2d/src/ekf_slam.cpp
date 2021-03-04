@@ -29,7 +29,7 @@ rigid2d::EKF_SLAM::EKF_SLAM(int n_measurements, std::vector<double> process_nois
     mat S_left_top = zeros<mat>(3,3);
     mat S_right_top = zeros<mat>(3,2*n);
     mat S_left_bot = zeros<mat>(2*n,3);
-    mat S_right_bot = eye(2*n, 2*n)*10000;
+    mat S_right_bot = eye(2*n, 2*n)*100000000;
 
     mat S_top = join_horiz(S_left_top, S_right_top);
     mat S_bot = join_horiz(S_left_bot, S_right_bot);
@@ -53,6 +53,17 @@ rigid2d::EKF_SLAM::EKF_SLAM(int n_measurements, std::vector<double> process_nois
 }
 
 void rigid2d::EKF_SLAM::prediction(const rigid2d::Twist2D & twist){
+
+    // mat S_left_top = zeros<mat>(3,3);
+    // mat S_right_top = zeros<mat>(3,2*n);
+    // mat S_left_bot = zeros<mat>(2*n,3);
+    // mat S_right_bot = eye(2*n, 2*n)*10000;
+
+    // mat S_top = join_horiz(S_left_top, S_right_top);
+    // mat S_bot = join_horiz(S_left_bot, S_right_bot);
+    // sigma = join_vert(S_top, S_bot);
+
+
     double dtheta = twist.angular();
     double dx = twist.linearX();
     double dy = 0.0;//twist.linearY();
@@ -64,7 +75,7 @@ void rigid2d::EKF_SLAM::prediction(const rigid2d::Twist2D & twist){
     mat update = zeros<mat>(3+2*n,1);
     mat A = zeros<mat>(3+2*n, 3+2*n);
 
-    if (fabs(dtheta) < 0.0001){
+    if (fabs(dtheta) < 0.000001){
         update(0,0) = 0;
         update(1,0) = dx*cos(theta);
         update(2,0) = dx*sin(theta);
@@ -86,16 +97,12 @@ void rigid2d::EKF_SLAM::prediction(const rigid2d::Twist2D & twist){
 
     state = state + update;;
 
-    std::cout << state << std::endl;
-
-
-
     mat At = eye(size(A)) + A;
     sigma = At*sigma*At.t() + Q;
 
 }
 
-void rigid2d::EKF_SLAM::correction(mat sensor_reading){
+void rigid2d::EKF_SLAM::measurement(mat sensor_reading){
     double theta = state(0,0);
     double x = state(1,0);
     double y = state(2,0);
@@ -131,7 +138,10 @@ void rigid2d::EKF_SLAM::correction(mat sensor_reading){
         z_measure(0,0) = ri;
         z_measure(1,0) = phii;
 
-        
+
+        if (i == 0){
+            std::cout << phii << std::endl;
+        }
         
 
         //z_hat
@@ -164,8 +174,14 @@ void rigid2d::EKF_SLAM::correction(mat sensor_reading){
 
         mat Ki = sigma*Hj.t()*(Hj*sigma*Hj.t() + R).i();
 
+        //std::cout << z_measure - hj << std::endl;
 
-        state = state + Ki*(z_measure - hj);
+        mat z_diff = z_measure - hj;
+        z_diff(1,0) = rigid2d::normalize_angle(z_diff(1,0));
+
+
+        state = state + Ki*z_diff;
+        state(0,0) = rigid2d::normalize_angle(state(0,0));
 
 
 

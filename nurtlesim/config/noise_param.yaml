@@ -1,8 +1,8 @@
 #The parameters for creating noise in tube_world sim
 vx_mu: 0.0     #Gaussian noise mean for commanded twist tranlational speed
-vx_std: 0.005    #Gaussian noise std for commanded twist tranlational speed
+vx_std: 0.01    #Gaussian noise std for commanded twist tranlational speed
 the_mu: 0.0    #Gaussian noise mean for commanded twist rotational speed
-the_std: 0.005   #Gaussian noise std for commanded twist rotational speed
+the_std: 0.01   #Gaussian noise std for commanded twist rotational speed
 slip_min: 0.0  #Minimum slip noise
 slip_max: 0.2  #Maximum slip noise
 covar_sensor_x: 0.001  #The x component of covariance matrix for sensor

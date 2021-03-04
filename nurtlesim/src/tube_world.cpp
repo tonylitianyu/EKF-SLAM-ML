@@ -29,13 +29,20 @@
 #include <vector>
 #include <cmath>
 
-
-
-
-/// \brief - the simulation class for tubes
-class SimTube{
+class TubeWorld{
     private:
-        ros::NodeHandle n;
+        ros::Publisher true_tube_pub;
+        ros::Timer timer;
+        ros::Subscriber vel_sub;
+        ros::Publisher joint_pub;
+        ros::Publisher robot_truth_marker_pub;
+        ros::Publisher path_pub;
+        ros::Publisher fake_tube_pub;
+
+        int fake_tube_counter;
+
+        nav_msgs::Path real_path;
+
         std::vector<double> coor_x;
         std::vector<double> coor_y;
         double radius;
@@ -43,43 +50,56 @@ class SimTube{
         double covar_sensor_y;
         double max_visible_dis;
 
+        double x_vel;
+        double ang_vel;
 
-        ros::Publisher true_tube_pub;
-        ros::Publisher fake_tube_pub;
-        ros::Timer timer;
-        
+        rigid2d::DiffDrive dd;
+        double wheel_base;
+        double wheel_radius;
+        double left_wheel_angle;
+        double right_wheel_angle;
+
+        std::string left_wheel_joint;
+        std::string right_wheel_joint;
+
+        double vx_std;
+        double the_std;
+
 
         unsigned seed;
 
-
-        double turtle_x;
-        double turtle_y;
-
-
-        double turtle_theta;
-
+        
     public:
-        /// \brief create the initial setup for the tubes in the simulator
-        ///
-        /// \param nh - the node handle for ROS
-        /// \param coor_x - the x coordinates of the tubes
-        /// \param coor_y - the y coordinates of the tubes
-        /// \param radius - the raidus of the tube
-        SimTube(ros::NodeHandle nh, std::vector<double> coor_x, std::vector<double> coor_y, double radius, double covar_sensor_x,
-                double covar_sensor_y, double max_visible_dis):
-        timer(nh.createTimer(ros::Duration(0.1), &SimTube::main_loop, this)),
+        TubeWorld(ros::NodeHandle nh, std::vector<double> coor_x, std::vector<double> coor_y, double radius, double covar_sensor_x,
+                double covar_sensor_y, double max_visible_dis, std::string left_wheel_joint_str, std::string right_wheel_joint_str, double wheel_base_val, double wheel_radius_val,
+                double vx_std, double the_std):
+        timer(nh.createTimer(ros::Duration(0.01), &TubeWorld::main_loop, this)),
         coor_x(coor_x),
         coor_y(coor_y),
         radius(radius),
-        true_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("true_sensor", 10, true)),
-        fake_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("fake_sensor", 10, true)),
         covar_sensor_x(covar_sensor_x),
         covar_sensor_y(covar_sensor_y),
         max_visible_dis(max_visible_dis),
-        seed(std::chrono::system_clock::now().time_since_epoch().count()),
-        turtle_x(0.0),
-        turtle_y(0.0),
-        turtle_theta(0.0)
+        true_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("true_sensor", 10, true)),
+        fake_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("fake_sensor", 10, true)),
+        path_pub(nh.advertise<nav_msgs::Path>("real_path", 100)),
+        robot_truth_marker_pub(nh.advertise<visualization_msgs::Marker>("ground_truth_turtle", 100)),
+        x_vel(0.0),
+        ang_vel(0.0),
+        wheel_base(wheel_base_val),
+        wheel_radius(wheel_radius_val),
+        dd(rigid2d::DiffDrive(wheel_base_val, wheel_radius_val)),
+        vel_sub(nh.subscribe("cmd_vel", 1000, &TubeWorld::callback_vel, this)),
+        joint_pub(nh.advertise<sensor_msgs::JointState>("joint_states", 100)),
+        left_wheel_angle(0.0),
+        right_wheel_angle(0.0),
+        left_wheel_joint(left_wheel_joint_str),
+        right_wheel_joint(right_wheel_joint_str),
+        fake_tube_counter(0),
+        vx_std(vx_std),
+        the_std(the_std),
+        seed(std::chrono::system_clock::now().time_since_epoch().count())
+
         {
             visualization_msgs::MarkerArray true_tube_marker_array;
             for (int i = 0; i < coor_x.size(); i++){
@@ -93,203 +113,81 @@ class SimTube{
                 true_tube_marker.type = visualization_msgs::Marker::CYLINDER;
                 true_tube_marker.scale.x = 0.1;
                 true_tube_marker.scale.y = 0.1;
-                true_tube_marker.scale.z = 0.5;
+                true_tube_marker.scale.z = 0.3;
                 true_tube_marker.color.g = 1.0;
                 true_tube_marker.color.a = 1.0;
 
                 true_tube_marker.pose.position.x = coor_x[i];
                 true_tube_marker.pose.position.y = coor_y[i];
+                true_tube_marker.pose.position.z = 0.15;
                 true_tube_marker.pose.orientation.w = 1.0;
 
                 true_tube_marker_array.markers.push_back(true_tube_marker);
 
             }
 
-            //true_tube_pub.publish(true_tube_marker_array);
-
-
-        }
-
-        void updateTurtlePos(double x, double y, double theta){
-            turtle_x = x;
-            turtle_y = y;
-            turtle_theta = theta;
-        }
-
-        double distanceToTurtle(double tube_x, double tube_y){
-            return sqrt(pow(turtle_x-tube_x,2)+pow(turtle_y-tube_y,2));
-        }
-
-        bool tubeIsVisible(double tube_x, double tube_y){
-            double distance = distanceToTurtle(tube_x, tube_y);
-            
-            if (distance < max_visible_dis){
-                
-                return true;
-            }else{
-                return false;
-            }
-        }
-
-        void publishMeasuredTube(){
-            visualization_msgs::MarkerArray fake_tube_marker_array;
-            static std::default_random_engine random_x(seed);
-            static std::normal_distribution<double> x_noise(0.0, covar_sensor_x);
-
-            static std::default_random_engine random_y(seed);
-            static std::normal_distribution<double> y_noise(0.0, covar_sensor_y);
-
-
-
-
-            for (int j = 0; j < coor_x.size(); j++){
-                visualization_msgs::Marker fake_tube_marker;
-                fake_tube_marker.header.frame_id = "turtle";
-                fake_tube_marker.header.stamp = ros::Time::now();
-                fake_tube_marker.ns = "fake";
-                fake_tube_marker.lifetime = ros::Duration(0.1);
-                
-
-                fake_tube_marker.id = j;
-                fake_tube_marker.type = visualization_msgs::Marker::CYLINDER;
-                fake_tube_marker.scale.x = 0.1;
-                fake_tube_marker.scale.y = 0.1;
-                fake_tube_marker.scale.z = 0.3;
-                fake_tube_marker.color.r = 1.0;
-                fake_tube_marker.color.a = 1.0;
-
-
-                rigid2d::Vector2D trans = {turtle_x, turtle_y};
-                rigid2d::Transform2D Ttw = rigid2d::Transform2D(trans, turtle_theta).inv();
-
-                rigid2d::Vector2D world_tube = {coor_x[j], coor_y[j]};
-                rigid2d::Vector2D turtle_tube = Ttw(world_tube);
-
-
-                
-                fake_tube_marker.pose.position.x = turtle_tube.x;//+x_noise(random_x);
-                fake_tube_marker.pose.position.y = turtle_tube.y;//+y_noise(random_y);
-                fake_tube_marker.pose.position.z = 0.15;
-                fake_tube_marker.pose.orientation.w = 1.0;
-
-
-                if (tubeIsVisible(fake_tube_marker.pose.position.x, fake_tube_marker.pose.position.y)){
-                    fake_tube_marker.action = visualization_msgs::Marker::ADD;
-                }else{
-                    fake_tube_marker.action = visualization_msgs::Marker::DELETE;
-                }
-
-                fake_tube_marker_array.markers.push_back(fake_tube_marker);
-            }
-
-            fake_tube_pub.publish(fake_tube_marker_array);
-        }
-
-        std::vector<double> findCollisionTubePos(double wheel_base){
-            std::vector<double> tube_pos;
-            for (int i = 0; i < coor_x.size(); i++){
-                double dis = distanceToTurtle(coor_x[i], coor_y[i]);
-                if (dis < (radius + wheel_base)){
-                    tube_pos.push_back(coor_x[i]);
-                    tube_pos.push_back(coor_y[i]);
-                    return tube_pos;
-                }
-            }
-
-            return tube_pos;
-        }
-
-        double getTubeRadius(){
-            return radius;
+            true_tube_pub.publish(true_tube_marker_array);
         }
 
 
-        /// \brief The main control loop state machine
-        void main_loop(const ros::TimerEvent &){
-            publishMeasuredTube();
-        }
-};
-
-
-/// \brief - the simulation class for diff drive turtle robot
-class SimTurtle{
-    private:
-        ros::NodeHandle n;
-        ros::Subscriber vel_sub;
-        ros::Publisher joint_pub;
-        ros::Publisher robot_truth_marker_pub;
-        ros::Publisher path_pub;
-        ros::Timer timer;
-
-        rigid2d::DiffDrive dd;
-        std::string left_wheel_joint;
-        std::string right_wheel_joint;
-        double wheel_base;
-        double wheel_radius;
-        double left_wheel_angle;
-        double right_wheel_angle;
-
-        double x_vel;
-        double y_vel;
-        double ang_vel;
-
-        //noise
-        double vx_mu;
-        double vx_std;
-        double the_mu;
-        double the_std;
-        double slip_min;
-        double slip_max;
-
-        unsigned seed;
-
-        nav_msgs::Path real_path;
-
-        SimTube & tubes;
-
-    public:
-        /// \brief create the initial setup for the simulator
-        ///
-        /// \param nh - the node handle for ROS
-        /// \param left_wheel_joint_str - The name of the left wheel joint
-        /// \param right_wheel_joint_str - The name of the right wheel joint
-        /// \param wheel_base_val - The distance between the wheels 
-        /// \param wheel_radius_val - The radius of the wheels
-        /// \param vx_mu - Gaussian noise mean for commanded twist tranlational speed
-        /// \param vx_std - Gaussian noise std for commanded twist tranlational speed
-        /// \param the_mu - Gaussian noise mean for commanded twist rotational speed
-        /// \param the_std - Gaussian noise std for commanded twist rotational speed
-        /// \param slip_min - Minimum slip noise
-        /// \param slip_max - Maximum slip noise
-        SimTurtle(ros::NodeHandle nh, std::string left_wheel_joint_str, std::string right_wheel_joint_str, 
-                            double wheel_base_val, double wheel_radius_val, double vx_mu, double vx_std, 
-                            double the_mu, double the_std, double slip_min, double slip_max, SimTube & tubes):
-        timer(nh.createTimer(ros::Duration(0.01), &SimTurtle::main_loop, this)),
-        vel_sub(nh.subscribe("cmd_vel", 1000, &SimTurtle::callback_vel, this)),
-        joint_pub(nh.advertise<sensor_msgs::JointState>("joint_states", 100)),
-        robot_truth_marker_pub(nh.advertise<visualization_msgs::Marker>("ground_truth_turtle", 100)),
-        path_pub(nh.advertise<nav_msgs::Path>("real_path", 100)),
-        wheel_base(wheel_base_val),
-        wheel_radius(wheel_radius_val),
-        dd(rigid2d::DiffDrive(wheel_base_val, wheel_radius_val)),
-        left_wheel_angle(0.0),
-        right_wheel_angle(0.0),
-        left_wheel_joint(left_wheel_joint_str),
-        right_wheel_joint(right_wheel_joint_str),
-        vx_mu(vx_mu),
-        vx_std(vx_std),
-        the_mu(the_mu),
-        the_std(the_std),
-        slip_min(slip_min),
-        slip_max(slip_max),
-        //source:https://stackoverflow.com/questions/32889309/adding-gaussian-noise
-        seed(std::chrono::system_clock::now().time_since_epoch().count()),
-        tubes(tubes)
+        void callback_vel(const geometry_msgs::Twist &vel)
         {
+            if (vel.linear.x < 0.0001 || vel.linear.x > -0.0001){
+                x_vel = vel.linear.x;
+            }else{
+                static std::default_random_engine random_x(seed);
+                static std::normal_distribution<double> x_noise(0.0, vx_std);
+                x_vel = vel.linear.x + x_noise(random_x);
+            }
+
+            
+            if (vel.angular.z < 0.0001 || vel.angular.z > -0.0001){
+                ang_vel = vel.angular.z;
+            }else{
+                static std::default_random_engine random_the(seed);
+                static std::normal_distribution<double> the_noise(0.0, the_std);
+                ang_vel = vel.angular.z + the_noise(random_the);
+            }
+
+            // x_vel = vel.linear.x;
+            // ang_vel = vel.angular.z;
+
+
         }
 
-        /// \brief publish ground truth location of the robot in world frame
-        void publishGroundTruthLocation(){
+        void publishJointState(){
+            rigid2d::Vector2D lin = {x_vel,0.0};
+            
+            rigid2d::Twist2D ts = rigid2d::Twist2D(ang_vel, lin);
+            rigid2d::Vector2D wheel_vel = dd.calculateWheelVelocity(ts);
+            
+
+            double delta_wheel_left = (wheel_vel.x/100.0);   //100.0 is the timer frequency in odometer
+            double delta_wheel_right = (wheel_vel.y/100.0);
+
+
+            dd.updatePose(delta_wheel_left, delta_wheel_right);
+
+            checkCollision();
+
+            left_wheel_angle += delta_wheel_left;  
+            
+            right_wheel_angle += delta_wheel_right;
+
+
+            sensor_msgs::JointState joint_msg;
+            joint_msg.header.stamp = ros::Time::now();
+            joint_msg.name.push_back(left_wheel_joint);
+            joint_msg.name.push_back(right_wheel_joint);
+
+            joint_msg.position.push_back(left_wheel_angle);
+            joint_msg.position.push_back(right_wheel_angle);
+            joint_msg.velocity.push_back(delta_wheel_left);
+            joint_msg.velocity.push_back(delta_wheel_right);
+            joint_pub.publish(joint_msg);
+        }
+
+        void publishTurtleFrame(){
             tf2::Quaternion q;
             q.setRPY(0,0,dd.getTheta());
             static tf2_ros::TransformBroadcaster odom_br;
@@ -322,13 +220,13 @@ class SimTurtle{
 
             true_turtle_marker.pose.position.x = dd.getPosition().x;
             true_turtle_marker.pose.position.y = dd.getPosition().y;
+            true_turtle_marker.pose.position.z = 0.05;
+
             true_turtle_marker.pose.orientation.x = q.x();
             true_turtle_marker.pose.orientation.y = q.y();
             true_turtle_marker.pose.orientation.z = q.z();
             true_turtle_marker.pose.orientation.w = q.w();
             robot_truth_marker_pub.publish(true_turtle_marker);
-
-
 
             //add path
             geometry_msgs::PoseStamped pose;
@@ -347,82 +245,25 @@ class SimTurtle{
             real_path.poses.push_back(pose);
 
             path_pub.publish(real_path);
-
-
-            
-
         }
 
-        /// \brief callback function for velocity command
-        /// \param vel - velocity command
-        void callback_vel(const geometry_msgs::Twist &vel)
-        {
-            if (vel.linear.x < 0.0001 || vel.linear.x > -0.0001){
-                x_vel = vel.linear.x;
-            }else{
-                static std::default_random_engine random_x(seed);
-                static std::normal_distribution<double> x_noise(vx_mu, vx_std);
-                x_vel = vel.linear.x + x_noise(random_x);
+
+        std::vector<double> findCollisionTubePos(){
+            std::vector<double> tube_pos;
+            for (int i = 0; i < coor_x.size(); i++){
+                double dis = sqrt(pow(dd.getPosition().x-coor_x[i],2)+pow(dd.getPosition().y-coor_y[i],2));;
+                if (dis < (radius + wheel_base)){
+                    tube_pos.push_back(coor_x[i]);
+                    tube_pos.push_back(coor_y[i]);
+                    return tube_pos;
+                }
             }
 
-            
-            if (vel.angular.z < 0.0001 || vel.angular.z > -0.0001){
-                ang_vel = vel.angular.z;
-            }else{
-                static std::default_random_engine random_the(seed);
-                static std::normal_distribution<double> the_noise(the_mu, the_std);
-                ang_vel = vel.angular.z + the_noise(random_the);
-            }
-
-
+            return tube_pos;
         }
-
-        void publishJointState(){
-            rigid2d::Vector2D lin = {x_vel,y_vel};
-            
-            rigid2d::Twist2D ts = rigid2d::Twist2D(ang_vel, lin);
-            rigid2d::Vector2D wheel_vel = dd.calculateWheelVelocity(ts);
-            
-
-            double delta_wheel_left = (wheel_vel.x/100.0);   //100.0 is the timer frequency in odometer
-            double delta_wheel_right = (wheel_vel.y/100.0);
-
-
-            static std::default_random_engine random_left(seed);
-            static std::default_random_engine random_right(seed);
-            static std::uniform_real_distribution<double> left_noise(slip_min, slip_max);
-            static std::uniform_real_distribution<double> right_noise(slip_min, slip_max);
-
-            delta_wheel_left += left_noise(random_left)*delta_wheel_left;
-            delta_wheel_right += right_noise(random_right)*delta_wheel_right;
-
-
-            dd.updatePose(delta_wheel_left, delta_wheel_right);
-
-            tubes.updateTurtlePos(dd.getPosition().x, dd.getPosition().y, dd.getTheta());
-            checkCollision();
-
-            left_wheel_angle += delta_wheel_left;  
-            
-            right_wheel_angle += delta_wheel_right;
-
-
-            sensor_msgs::JointState joint_msg;
-            joint_msg.header.stamp = ros::Time::now();
-            joint_msg.name.push_back(left_wheel_joint);
-            joint_msg.name.push_back(right_wheel_joint);
-
-            joint_msg.position.push_back(left_wheel_angle);
-            joint_msg.position.push_back(right_wheel_angle);
-            joint_msg.velocity.push_back(delta_wheel_left);
-            joint_msg.velocity.push_back(delta_wheel_right);
-            joint_pub.publish(joint_msg);
-        }
-
-
 
         void checkCollision(){
-            std::vector<double> colliding_tube = tubes.findCollisionTubePos(wheel_base);
+            std::vector<double> colliding_tube = findCollisionTubePos();
             if (colliding_tube.size() != 0){
                 moveAfterCollision(colliding_tube[0], colliding_tube[1]);
             }
@@ -435,7 +276,7 @@ class SimTurtle{
             double dy = tube_y-dd.getPosition().y;
 
             double angle = atan2(dy, dx);
-            double correct_dis = tubes.getTubeRadius() + wheel_base;
+            double correct_dis = radius + wheel_base;
             double correct_dy = correct_dis*sin(angle);
             double correct_dx = correct_dis*cos(angle);
 
@@ -448,21 +289,75 @@ class SimTurtle{
 
         }
 
+
+        void publishFakeSensor(){
+            visualization_msgs::MarkerArray fake_tube_marker_array;
+            for (int j = 0; j < coor_x.size(); j++){
+                visualization_msgs::Marker fake_tube_marker;
+                fake_tube_marker.header.frame_id = "turtle";
+                fake_tube_marker.header.stamp = ros::Time::now();
+                fake_tube_marker.ns = "fake";
+                fake_tube_marker.lifetime = ros::Duration(0.1);
+                
+
+                fake_tube_marker.id = j;
+                fake_tube_marker.type = visualization_msgs::Marker::CYLINDER;
+                fake_tube_marker.scale.x = 0.1;
+                fake_tube_marker.scale.y = 0.1;
+                fake_tube_marker.scale.z = 0.3;
+                fake_tube_marker.color.r = 1.0;
+                fake_tube_marker.color.a = 1.0;
+
+
+                rigid2d::Vector2D trans = {dd.getPosition().x, dd.getPosition().y};
+                rigid2d::Transform2D Ttw = rigid2d::Transform2D(trans, dd.getTheta()).inv();
+
+                rigid2d::Vector2D world_tube = {coor_x[j], coor_y[j]};
+                rigid2d::Vector2D turtle_tube = Ttw(world_tube);
+
+                static std::default_random_engine random_x(seed);
+                static std::normal_distribution<double> x_noise(0.0, covar_sensor_x);
+                static std::default_random_engine random_y(seed);
+                static std::normal_distribution<double> y_noise(0.0, covar_sensor_y);
+                
+                fake_tube_marker.pose.position.x = turtle_tube.x+x_noise(random_x);
+                fake_tube_marker.pose.position.y = turtle_tube.y+y_noise(random_y);
+                fake_tube_marker.pose.position.z = 0.15;
+                fake_tube_marker.pose.orientation.w = 1.0;
+
+                fake_tube_marker.action = visualization_msgs::Marker::ADD;
+
+
+                fake_tube_marker_array.markers.push_back(fake_tube_marker);
+            }
+
+            fake_tube_pub.publish(fake_tube_marker_array);
+        }
+
+
+
+
         /// \brief The main control loop state machine
         void main_loop(const ros::TimerEvent &){
+            publishTurtleFrame();
             publishJointState();
-            publishGroundTruthLocation();
+
+            if (fake_tube_counter == 10){
+                publishFakeSensor();
+                fake_tube_counter = 0;
+            }else{
+                fake_tube_counter++;
+            }
         }
 
 
-        rigid2d::DiffDrive getDiffDrive(){
-            return dd;
-        }
 
-
-
-        
 };
+
+
+
+
+
 
 
 int main(int argc, char **argv)
@@ -618,10 +513,11 @@ int main(int argc, char **argv)
         ROS_ERROR("Unable to get param 'max_visible_dis'");
     }
 
-    SimTube stube = SimTube(n, tube_coor_x, tube_coor_y, tube_radius, covar_sensor_x, covar_sensor_y, max_visible_dis);
+    TubeWorld tw = TubeWorld(n, tube_coor_x, tube_coor_y, tube_radius, covar_sensor_x, covar_sensor_y, max_visible_dis, left_wheel_joint, right_wheel_joint, wheel_base, wheel_radius, 
+                                vx_std, the_std);
 
-    SimTurtle sturtle = SimTurtle(n, left_wheel_joint, right_wheel_joint, wheel_base, wheel_radius,
-                                vx_mu, vx_std, the_mu, the_std, slip_min, slip_max, stube);
+    // SimTurtle sturtle = SimTurtle(n, left_wheel_joint, right_wheel_joint, wheel_base, wheel_radius,
+    //                             vx_mu, vx_std, the_mu, the_std, slip_min, slip_max, stube);
 
 
     ros::spin();
