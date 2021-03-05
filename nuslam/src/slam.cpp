@@ -175,6 +175,14 @@ class Odometer
             return body_twist;
         }
 
+        /// \brief Get the current pose of in odom
+        /// \return current pose of the turtle in odom
+        rigid2d::Transform2D getCurrentPose(){
+            rigid2d::Vector2D trans = {dd.getPosition().x, dd.getPosition().y};
+            rigid2d::Transform2D Tot = rigid2d::Transform2D(trans, dd.getTheta());
+            return Tot;
+        }
+
 
     
 };
@@ -256,11 +264,28 @@ class SLAM
 
             static tf2_ros::TransformBroadcaster map_odom_br;
 
+            //calulcate odom in map
+            rigid2d::Transform2D Tto = odometer.getCurrentPose().inv();
+            rigid2d::Vector2D slam_trans = {slam_agent.getStateX(), slam_agent.getStateY()};
+            rigid2d::Transform2D Tmt_temp = rigid2d::Transform2D(slam_trans, slam_agent.getStateTheta());
+            Tmt_temp*=Tto;
+            rigid2d::Transform2D Tmt = Tmt_temp;
+            tf2::Quaternion odom_ori;
+            odom_ori.setRPY(0,0,Tmt.theta());
+
+
+
             geometry_msgs::TransformStamped map_odom_transform;
             map_odom_transform.header.stamp = ros::Time::now();
             map_odom_transform.header.frame_id = "map";
             map_odom_transform.child_frame_id = odom_frame_id;
-            map_odom_transform.transform.rotation.w = 1.0;
+            map_odom_transform.transform.translation.x = Tmt.x();
+            map_odom_transform.transform.translation.y = Tmt.y();
+            map_odom_transform.transform.rotation.x = odom_ori.x();
+            map_odom_transform.transform.rotation.y = odom_ori.y();
+            map_odom_transform.transform.rotation.z = odom_ori.z();
+
+            map_odom_transform.transform.rotation.w = odom_ori.w();
             map_odom_br.sendTransform(map_odom_transform);
 
         }
@@ -389,9 +414,7 @@ class SLAM
         /// \brief The main control loop state machine
         void main_loop(const ros::TimerEvent &){
 
-            publishFrames();
-            rigid2d::Vector2D vv;
-            rigid2d::Twist2D test_twist;
+            //publishFrames();
 
 
 
@@ -410,7 +433,7 @@ class SLAM
                         sensor_update_flag = false;
                         state_update_flag = true;
                     }
-
+                    publishFrames();
                     publishSLAMPath();
                     publishSLAMLandmark();
 
