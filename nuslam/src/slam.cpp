@@ -100,35 +100,35 @@ class Odometer
             tf2::Quaternion q;
             q.setRPY(0,0,dd.getTheta());
 
-            nav_msgs::Odometry odom;
-            odom.header.stamp = ros::Time::now();
-            odom.header.frame_id = odom_frame_id;
-            odom.pose.pose.position.x = dd.getPosition().x;
-            odom.pose.pose.position.y = dd.getPosition().y;
-            odom.pose.pose.position.z = 0.0;
-            odom.pose.pose.orientation.x = q.x();
-            odom.pose.pose.orientation.y = q.y();
-            odom.pose.pose.orientation.z = q.z();
-            odom.pose.pose.orientation.w = q.w();
-            odom.child_frame_id = body_frame_id;
-            odom.twist.twist.linear.x = body_twist_odom.linearX();
-            odom.twist.twist.linear.y = body_twist_odom.linearY();
-            odom.twist.twist.angular.z = body_twist_odom.angular();
-            odom_pub.publish(odom);
+            // nav_msgs::Odometry odom;
+            // odom.header.stamp = ros::Time::now();
+            // odom.header.frame_id = odom_frame_id;
+            // odom.pose.pose.position.x = dd.getPosition().x;
+            // odom.pose.pose.position.y = dd.getPosition().y;
+            // odom.pose.pose.position.z = 0.0;
+            // odom.pose.pose.orientation.x = q.x();
+            // odom.pose.pose.orientation.y = q.y();
+            // odom.pose.pose.orientation.z = q.z();
+            // odom.pose.pose.orientation.w = q.w();
+            // odom.child_frame_id = body_frame_id;
+            // odom.twist.twist.linear.x = body_twist_odom.linearX();
+            // odom.twist.twist.linear.y = body_twist_odom.linearY();
+            // odom.twist.twist.angular.z = body_twist_odom.angular();
+            // odom_pub.publish(odom);
 
             //source: http://wiki.ros.org/tf2/Tutorials/Writing%20a%20tf2%20broadcaster%20%28C%2B%2B%29
-            // geometry_msgs::TransformStamped odom_transform;
-            // odom_transform.header.stamp = ros::Time::now();
-            // odom_transform.header.frame_id = odom_frame_id;
-            // odom_transform.child_frame_id = body_frame_id;
-            // odom_transform.transform.translation.x = dd.getPosition().x;
-            // odom_transform.transform.translation.y = dd.getPosition().y;
-            // odom_transform.transform.translation.z = 0.0;
-            // odom_transform.transform.rotation.x = q.x();
-            // odom_transform.transform.rotation.y = q.y();
-            // odom_transform.transform.rotation.z = q.z();
-            // odom_transform.transform.rotation.w = q.w();
-            // odom_br.sendTransform(odom_transform);
+            geometry_msgs::TransformStamped odom_transform;
+            odom_transform.header.stamp = ros::Time::now();
+            odom_transform.header.frame_id = odom_frame_id;
+            odom_transform.child_frame_id = body_frame_id;
+            odom_transform.transform.translation.x = dd.getPosition().x;
+            odom_transform.transform.translation.y = dd.getPosition().y;
+            odom_transform.transform.translation.z = 0.0;
+            odom_transform.transform.rotation.x = q.x();
+            odom_transform.transform.rotation.y = q.y();
+            odom_transform.transform.rotation.z = q.z();
+            odom_transform.transform.rotation.w = q.w();
+            odom_br.sendTransform(odom_transform);
 
             //odom path
             geometry_msgs::PoseStamped pose;
