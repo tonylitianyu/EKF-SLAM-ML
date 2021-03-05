@@ -1,5 +1,5 @@
 /// \file  slam.cpp
-/// \brief Extended Kalman Filter SLAM algorithm
+/// \brief Extended Kalman Filter SLAM node
 ///
 /// PARAMETERS:
 ///     odom_frame_id (string): The name of the odometry tf frame
@@ -10,10 +10,10 @@
 ///     wheel_radius (double):  The radius of the wheels
 /// PUBLISHES:
 ///     odom_pub (nav_msgs::Odometry): Publishes the robot updated odometry
+///     odom_path_pub (nav_msgs::Path):  Publishes the odometry path
 /// SUBSCRIBES:
 ///     joint_state_sub (sensor_msgs::JointState): Subscribes to the current wheel joint angle
-/// SERVICES:
-///     set_pose_srv (rigid2d::SetPose): Resets the robot to a given configuration
+
 
 
 #include "ros/ros.h"
@@ -168,9 +168,10 @@ class Odometer
             publishUpdatedOdometry();
         }
 
-
+        /// \brief Get the current odometry moving twist
+        /// \return current moving twist
         rigid2d::Twist2D & getCurrentTwist(){
-            body_twist = dd.getBodyTwistForUpdate(delta_left_wheel_angle*10.0, delta_right_wheel_angle*10.0);
+            body_twist = dd.getBodyTwistForUpdate(delta_left_wheel_angle*10.0, delta_right_wheel_angle*10.0); //odom publishes at 100Hz but slam updates at 10Hz, so times 10.
             return body_twist;
         }
 
@@ -183,6 +184,7 @@ enum class SLAMState {WAIT_SENSOR, INIT, UPDATE};
 
 static SLAMState state_machine = SLAMState::WAIT_SENSOR;
 
+/// \brief Organizes sensor reading and update for SLAM
 class SLAM
 {
 
@@ -216,6 +218,14 @@ class SLAM
         std::vector<bool> known_list;
 
     public:
+        /// \brief create the initial setup for slam
+        ///
+        /// \param nh - the node handle for ROS
+        /// \param odom_frame_id_str - The name of the odometry tf frame
+        /// \param body_frame_id_str - The name of the body tf frame
+        /// \param wheel_base_val - The distance between the wheels 
+        /// \param wheel_radius_val - The radius of the wheels
+        /// \param odometer - The odometer object for getting the current twist
         SLAM(ros::NodeHandle nh, std::string odom_frame_id_str, std::string body_frame_id_str, double wheel_base_val, double wheel_radius_val, Odometer & odometer):
         timer(nh.createTimer(ros::Duration(0.1), &SLAM::main_loop, this)),
         fake_sensor_sub(nh.subscribe("fake_sensor", 1000, &SLAM::callback_fake_sensor, this)),
@@ -232,6 +242,7 @@ class SLAM
         {
         }
 
+        /// \brief publish necessary frames
         void publishFrames(){
             static tf2_ros::TransformBroadcaster world_map_br;
 
@@ -255,7 +266,8 @@ class SLAM
         }
 
 
-
+        /// \brief callback function for receving fake sensor reading
+        /// \param tube - received fake sensor marker array
         void callback_fake_sensor(const visualization_msgs::MarkerArray &tube){
             std::vector<visualization_msgs::Marker> fake_tubes = tube.markers;
             sensor_reading = zeros<mat>(fake_tubes.size()*2,1);
@@ -297,7 +309,7 @@ class SLAM
 
         }
 
-
+        /// \brief publish path for turtle in SLAM state
         void publishSLAMPath(){
             //add path
             tf2::Quaternion slam_ori;
@@ -336,7 +348,7 @@ class SLAM
 
         }
 
-
+        /// \brief publish landmark SLAM state
         void publishSLAMLandmark(){
             mat landmark_state = slam_agent.getStateLandmark();
             visualization_msgs::MarkerArray slam_tube_marker_array;

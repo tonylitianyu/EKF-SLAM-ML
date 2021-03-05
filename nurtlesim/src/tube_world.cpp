@@ -6,8 +6,21 @@
 ///     right_wheel_joint (string):  The name of the right wheel joint
 ///     wheel_base (double):  The distance between the wheels
 ///     wheel_radius (double):  The radius of the wheels
+///     vx_mu (double):  The mean noise of commanded twist in forward direction
+///     vx_std (double): The standard deviation noise of commanded twist in forward direction
+///     the_mu (double):  The mean noise of commanded twist in angular direction
+///     the_std (double):  The standard deviation noise of commanded twist in angular direction
+///     slip_min (double): The minimum wheel slip noise
+///     slip_max (double): The maximum wheel slip noise
+///     covar_sensor_x (double): The sensor noise in x direction
+///     covar_sensor_y (double): The sensor noise in y direction
+///     max_visible_dis (double): The maximum visible distance for the fake sensor
 /// PUBLISHES:
 ///     joint_pub (sensor_msgs::JointState): Publishes the new joint states
+///     true_tube_pub (visualization_msgs::MarkerArray):  Publishes the ground truth location of the tubes
+///     robot_truth_marker_pub (visualization_msgs::Marker):  Publishes the ground truth location of the robot
+///     path_pub (nav_msgs::Path):  Publishes the ground truth path of the robot
+///     fake_tube_pub (visualization_msgs::MarkerArray):  Publishes the sensor reading location of the tubes
 /// SUBSCRIBES:
 ///     vel_sub (geometry_msgs::Twist): Subscribes to the velocity control command
 
@@ -29,6 +42,7 @@
 #include <vector>
 #include <cmath>
 
+/// \brief simulation of a world with tubes for slam
 class TubeWorld{
     private:
         ros::Publisher true_tube_pub;
@@ -71,8 +85,25 @@ class TubeWorld{
 
         unsigned seed;
 
-        
+
     public:
+        /// \brief create the initial setup for tube world
+        ///
+        /// \param nh - the node handle for ROS
+        /// \param coor_x - ground truth x location of the tubes
+        /// \param coor_y - ground truth y location of the tubes
+        /// \param radius - radius of the tubes
+        /// \param covar_sensor_x - sensor noise in x
+        /// \param covar_sensor_y - sensor noise in y
+        /// \param max_visible_dis - the maximum visibile distance of the sensor
+        /// \param left_wheel_joint_str - the name of the left wheel joint frame
+        /// \param right_wheel_joint_str - the name of the right wheel joint frame
+        /// \param wheel_base_val - The distance between the wheels
+        /// \param wheel_radius_val - The radius of the wheels
+        /// \param vx_std - the standard deviation noise of commanded twist in forward direction
+        /// \param the_std - the standard deviation noise of commanded twist in angular direction
+        /// \param slip_min - the minimum wheel slip noise
+        /// \param slip_max - the maximum wheel slip noise
         TubeWorld(ros::NodeHandle nh, std::vector<double> coor_x, std::vector<double> coor_y, double radius, double covar_sensor_x,
                 double covar_sensor_y, double max_visible_dis, std::string left_wheel_joint_str, std::string right_wheel_joint_str, double wheel_base_val, double wheel_radius_val,
                 double vx_std, double the_std, double slip_min, double slip_max):
@@ -133,6 +164,9 @@ class TubeWorld{
             true_tube_pub.publish(true_tube_marker_array);
         }
 
+
+        /// \brief random number generator for noise
+        /// \return random number
         std::mt19937 & get_random(){
             static std::random_device rd{}; 
             static std::mt19937 mt{rd()};
@@ -140,7 +174,8 @@ class TubeWorld{
             return mt;
         }
 
-
+        /// \brief callback function for commanded twist
+        /// \param vel - commanded twist
         void callback_vel(const geometry_msgs::Twist &vel)
         {
             if (vel.linear.x < 0.0001 && vel.linear.x > -0.0001){
@@ -158,10 +193,10 @@ class TubeWorld{
                 ang_vel = vel.angular.z + the_noise(get_random());
             }
 
-
-
         }
 
+
+        /// \brief publish joint state for odometry
         void publishJointState(){
             rigid2d::Vector2D lin = {x_vel,0.0};
             
@@ -200,6 +235,7 @@ class TubeWorld{
             joint_pub.publish(joint_msg);
         }
 
+        /// \brief publish ground truth turtle location
         void publishTurtleFrame(){
             tf2::Quaternion q;
             q.setRPY(0,0,dd.getTheta());
@@ -260,11 +296,16 @@ class TubeWorld{
             path_pub.publish(real_path);
         }
 
-
+        /// \brief calculate the distance from the turtle to a specific tube
+        /// \param m - index of the tube
+        /// \return - the disance
         double distanceToTube(int m){
             return sqrt(pow(dd.getPosition().x-coor_x[m],2)+pow(dd.getPosition().y-coor_y[m],2));
         }
 
+
+        /// \brief find the position of the collided tube
+        /// \return - the x and y position of the collided tube
         std::vector<double> findCollisionTubePos(){
             std::vector<double> tube_pos;
             for (int i = 0; i < coor_x.size(); i++){
@@ -279,6 +320,7 @@ class TubeWorld{
             return tube_pos;
         }
 
+        /// \brief check and respond to collision
         void checkCollision(){
             std::vector<double> colliding_tube = findCollisionTubePos();
             if (colliding_tube.size() != 0){
@@ -286,6 +328,9 @@ class TubeWorld{
             }
         }
 
+        /// \brief update after collision
+        /// \param tube_x - the collided tube x position
+        /// \param tube_y - the collided tube y position
         void moveAfterCollision(double tube_x, double tube_y){
 
 
@@ -306,7 +351,7 @@ class TubeWorld{
 
         }
 
-
+        /// \brief publish fake sensor reading (tube position with noise)
         void publishFakeSensor(){
             visualization_msgs::MarkerArray fake_tube_marker_array;
             std::normal_distribution<> x_noise(0.0, covar_sensor_x);
