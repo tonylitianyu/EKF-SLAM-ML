@@ -218,6 +218,7 @@ class SLAM
         bool state_update_flag;
 
         std::vector<bool> visible_list;
+        std::vector<bool> known_list;
 
     public:
         SLAM(ros::NodeHandle nh, std::string odom_frame_id_str, 
@@ -277,6 +278,7 @@ class SLAM
                 n_tubes = fake_tubes.size();
                 for (int i = 0; i < fake_tubes.size(); i++){
                     visible_list.push_back(false);
+                    known_list.push_back(false);
                 }
             }else{
 
@@ -289,7 +291,12 @@ class SLAM
                         //check visibility
                         if (sqrt(pow(slam_agent.getStateX() - fake_tubes[i].pose.position.x, 2.0)+pow(slam_agent.getStateY() - fake_tubes[i].pose.position.y, 2.0)) < max_visible_dis){
                             visible_list[i] = true;
+                            known_list[i] = true;
+                        }else{
+                            visible_list[i] = false;
                         }
+
+
                     }
 
                 }
@@ -347,8 +354,11 @@ class SLAM
                 slam_tube_marker.header.frame_id = "map";
                 slam_tube_marker.header.stamp = ros::Time::now();
                 slam_tube_marker.ns = "landmark";
-
-                slam_tube_marker.action = visualization_msgs::Marker::ADD;
+                if (known_list[i]){
+                    slam_tube_marker.action = visualization_msgs::Marker::ADD;
+                }else{
+                    slam_tube_marker.action = visualization_msgs::Marker::DELETE;
+                }
 
                 slam_tube_marker.lifetime = ros::Duration(0.1);
 

@@ -62,6 +62,9 @@ class TubeWorld{
         std::string left_wheel_joint;
         std::string right_wheel_joint;
 
+        double slip_min;
+        double slip_max;
+
         double vx_std;
         double the_std;
 
@@ -72,7 +75,7 @@ class TubeWorld{
     public:
         TubeWorld(ros::NodeHandle nh, std::vector<double> coor_x, std::vector<double> coor_y, double radius, double covar_sensor_x,
                 double covar_sensor_y, double max_visible_dis, std::string left_wheel_joint_str, std::string right_wheel_joint_str, double wheel_base_val, double wheel_radius_val,
-                double vx_std, double the_std):
+                double vx_std, double the_std, double slip_min, double slip_max):
         timer(nh.createTimer(ros::Duration(0.01), &TubeWorld::main_loop, this)),
         coor_x(coor_x),
         coor_y(coor_y),
@@ -98,7 +101,8 @@ class TubeWorld{
         fake_tube_counter(0),
         vx_std(vx_std),
         the_std(the_std),
-        seed(std::chrono::system_clock::now().time_since_epoch().count())
+        slip_min(slip_min),
+        slip_max(slip_max)
 
         {
             visualization_msgs::MarkerArray true_tube_marker_array;
@@ -129,29 +133,31 @@ class TubeWorld{
             true_tube_pub.publish(true_tube_marker_array);
         }
 
+        std::mt19937 & get_random(){
+            static std::random_device rd{}; 
+            static std::mt19937 mt{rd()};
+
+            return mt;
+        }
+
 
         void callback_vel(const geometry_msgs::Twist &vel)
         {
-            // if (vel.linear.x < 0.0001 && vel.linear.x > -0.0001){
-            //     x_vel = vel.linear.x;
-            // }else{
-            //     static std::default_random_engine random_x(seed);
-            //     static std::normal_distribution<double> x_noise(0.0, vx_std);
-            //     x_vel = vel.linear.x + x_noise(random_x);
-            // }
+            if (vel.linear.x < 0.0001 && vel.linear.x > -0.0001){
+                x_vel = vel.linear.x;
+            }else{
+                std::normal_distribution<> x_noise(0.0, vx_std);
+                x_vel = vel.linear.x + x_noise(get_random());
+            }
 
             
-            // if (vel.angular.z < 0.0001 && vel.angular.z > -0.0001){
-            //     ang_vel = vel.angular.z;
-            // }else{
-            //     static std::default_random_engine random_the(seed);
-            //     static std::normal_distribution<double> the_noise(0.0, the_std);
-            //     ROS_ERROR("%f", the_noise(random_the));
-            //     ang_vel = vel.angular.z + the_noise(random_the);
-            // }
+            if (vel.angular.z < 0.0001 && vel.angular.z > -0.0001){
+                ang_vel = vel.angular.z;
+            }else{
+                std::normal_distribution<> the_noise(0.0, the_std);
+                ang_vel = vel.angular.z + the_noise(get_random());
+            }
 
-            x_vel = vel.linear.x;
-            ang_vel = vel.angular.z;
 
 
         }
@@ -165,6 +171,12 @@ class TubeWorld{
 
             double delta_wheel_left = (wheel_vel.x/100.0);   //100.0 is the timer frequency in odometer
             double delta_wheel_right = (wheel_vel.y/100.0);
+
+            std::uniform_real_distribution<> left_noise(slip_min, slip_max);
+            std::uniform_real_distribution<> right_noise(slip_min, slip_max);
+            delta_wheel_left = delta_wheel_left*left_noise(get_random());
+            delta_wheel_right = delta_wheel_right*right_noise(get_random());
+            
 
 
             dd.updatePose(delta_wheel_left, delta_wheel_right);
@@ -297,6 +309,8 @@ class TubeWorld{
 
         void publishFakeSensor(){
             visualization_msgs::MarkerArray fake_tube_marker_array;
+            std::normal_distribution<> x_noise(0.0, covar_sensor_x);
+            std::normal_distribution<> y_noise(0.0, covar_sensor_y);
             for (int j = 0; j < coor_x.size(); j++){
                 visualization_msgs::Marker fake_tube_marker;
                 fake_tube_marker.header.frame_id = "turtle";
@@ -320,13 +334,9 @@ class TubeWorld{
                 rigid2d::Vector2D world_tube = {coor_x[j], coor_y[j]};
                 rigid2d::Vector2D turtle_tube = Ttw(world_tube);
 
-                static std::default_random_engine random_x(seed);
-                static std::normal_distribution<double> x_noise(0.0, covar_sensor_x);
-                static std::default_random_engine random_y(seed);
-                static std::normal_distribution<double> y_noise(0.0, covar_sensor_y);
                 
-                fake_tube_marker.pose.position.x = turtle_tube.x+x_noise(random_x);
-                fake_tube_marker.pose.position.y = turtle_tube.y+y_noise(random_y);
+                fake_tube_marker.pose.position.x = turtle_tube.x+x_noise(get_random());
+                fake_tube_marker.pose.position.y = turtle_tube.y+y_noise(get_random());
                 fake_tube_marker.pose.position.z = 0.15;
                 fake_tube_marker.pose.orientation.w = 1.0;
 
@@ -524,10 +534,8 @@ int main(int argc, char **argv)
     }
 
     TubeWorld tw = TubeWorld(n, tube_coor_x, tube_coor_y, tube_radius, covar_sensor_x, covar_sensor_y, max_visible_dis, left_wheel_joint, right_wheel_joint, wheel_base, wheel_radius, 
-                                vx_std, the_std);
+                                vx_std, the_std, slip_min, slip_max);
 
-    // SimTurtle sturtle = SimTurtle(n, left_wheel_joint, right_wheel_joint, wheel_base, wheel_radius,
-    //                             vx_mu, vx_std, the_mu, the_std, slip_min, slip_max, stube);
 
 
     ros::spin();
