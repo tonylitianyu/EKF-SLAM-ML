@@ -101,7 +101,7 @@ void rigid2d::EKF_SLAM::prediction(const rigid2d::Twist2D & twist){
     mat At = eye(size(A)) + A;
     sigma = At*sigma*At.t() + Q;
 
-    std::cout << state << std::endl;
+
 
 }
 
@@ -127,9 +127,10 @@ void rigid2d::EKF_SLAM::measurement(mat sensor_reading, std::vector<bool> visibl
         landmark_init_flag = true;
     }
 
-    
+
 
     for(int i = 0; i < n; i++){
+        
 
         if (visible_list[i] == false){
             continue;

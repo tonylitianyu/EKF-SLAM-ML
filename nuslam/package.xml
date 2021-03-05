@@ -58,6 +58,7 @@
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>nuturtlebot</build_export_depend>
   <build_export_depend>rigid2d</build_export_depend>
+  <build_export_depend>visualization_msgs</build_export_depend>
 
   <exec_depend>rigid2d</exec_depend>
   <exec_depend>nurtlesim</exec_depend>

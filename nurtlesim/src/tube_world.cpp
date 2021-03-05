@@ -269,7 +269,7 @@ class TubeWorld{
             std::vector<double> tube_pos;
             for (int i = 0; i < coor_x.size(); i++){
                 double dis = distanceToTube(i);
-                if (dis < (radius + wheel_base)){
+                if (dis < (radius + (wheel_base/2))){
                     tube_pos.push_back(coor_x[i]);
                     tube_pos.push_back(coor_y[i]);
                     return tube_pos;
@@ -293,7 +293,7 @@ class TubeWorld{
             double dy = tube_y-dd.getPosition().y;
 
             double angle = atan2(dy, dx);
-            double correct_dis = radius + wheel_base;
+            double correct_dis = radius + (wheel_base/2);
             double correct_dy = correct_dis*sin(angle);
             double correct_dx = correct_dis*cos(angle);
 

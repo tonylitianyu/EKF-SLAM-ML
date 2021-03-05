@@ -7,4 +7,4 @@ slip_min: 1.10  #Minimum slip noise
 slip_max: 0.90  #Maximum slip noise
 covar_sensor_x: 0.005  #The x component of covariance matrix for sensor
 covar_sensor_y: 0.005  #The y component of covariance matrix for sensor
-max_visible_dis: 2.0  #maximum distance beyond which tubes are not visible
+max_visible_dis: 0.7  #maximum distance beyond which tubes are not visible

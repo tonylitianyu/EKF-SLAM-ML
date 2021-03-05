@@ -194,6 +194,7 @@ class SLAM
         nav_msgs::Path slam_path;
 
         std::string odom_frame_id;
+        std::string body_frame_id;
         double wheel_base;
         double wheel_radius;
 
@@ -205,12 +206,6 @@ class SLAM
         mat sensor_reading;
 
 
-        double vx_std;
-        double the_std;
-        double covar_sensor_x;
-        double covar_sensor_y;
-        double max_visible_dis;
-
 
         int n_tubes;
 
@@ -221,22 +216,16 @@ class SLAM
         std::vector<bool> known_list;
 
     public:
-        SLAM(ros::NodeHandle nh, std::string odom_frame_id_str, 
-                double wheel_base_val, double wheel_radius_val, Odometer & odometer, 
-                double vx_std, double the_std, double covar_sensor_x, double covar_sensor_y, double max_visible_dis):
+        SLAM(ros::NodeHandle nh, std::string odom_frame_id_str, std::string body_frame_id_str, double wheel_base_val, double wheel_radius_val, Odometer & odometer):
         timer(nh.createTimer(ros::Duration(0.1), &SLAM::main_loop, this)),
         fake_sensor_sub(nh.subscribe("fake_sensor", 1000, &SLAM::callback_fake_sensor, this)),
         slam_path_pub(nh.advertise<nav_msgs::Path>("slam_path", 100)),
         slam_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("slam_tube", 10, true)),
         odom_frame_id(odom_frame_id_str),
+        body_frame_id(body_frame_id_str),
         wheel_base(wheel_base_val),
         wheel_radius(wheel_radius_val),
         odometer(odometer),
-        vx_std(vx_std),
-        the_std(the_std),
-        covar_sensor_x(covar_sensor_x),
-        covar_sensor_y(covar_sensor_y),
-        max_visible_dis(max_visible_dis),
         n_tubes(0),
         sensor_update_flag(false),
         state_update_flag(false)
@@ -271,11 +260,11 @@ class SLAM
             std::vector<visualization_msgs::Marker> fake_tubes = tube.markers;
             sensor_reading = zeros<mat>(fake_tubes.size()*2,1);
 
-
             if (fake_tubes.size() != 0 && state_machine == SLAMState::WAIT_SENSOR){
                 //first receive sensor reading, initialize slam!
                 state_machine = SLAMState::INIT;
                 n_tubes = fake_tubes.size();
+                
                 for (int i = 0; i < fake_tubes.size(); i++){
                     visible_list.push_back(false);
                     known_list.push_back(false);
@@ -283,13 +272,15 @@ class SLAM
             }else{
 
                 //update sensor reading
+
                 for (int i = 0; i < fake_tubes.size(); i++){
                     sensor_reading(i*2,0) = fake_tubes[i].pose.position.x;
                     sensor_reading(i*2+1,0) = fake_tubes[i].pose.position.y;
 
                     if (state_update_flag){
                         //check visibility
-                        if (sqrt(pow(slam_agent.getStateX() - fake_tubes[i].pose.position.x, 2.0)+pow(slam_agent.getStateY() - fake_tubes[i].pose.position.y, 2.0)) < max_visible_dis){
+                        if (fake_tubes[i].action == visualization_msgs::Marker::ADD){
+                            
                             visible_list[i] = true;
                             known_list[i] = true;
                         }else{
@@ -333,7 +324,7 @@ class SLAM
             geometry_msgs::TransformStamped slam_transform;
             slam_transform.header.stamp = ros::Time::now();
             slam_transform.header.frame_id = odom_frame_id;
-            slam_transform.child_frame_id = "base_footprint";
+            slam_transform.child_frame_id = body_frame_id;
             slam_transform.transform.translation.x = slam_agent.getStateX();
             slam_transform.transform.translation.y = slam_agent.getStateY();
             slam_transform.transform.translation.z = 0.0;
@@ -436,11 +427,6 @@ int main(int argc, char **argv)
 
 
 
-    double vx_std;
-    double the_std;
-    double covar_sensor_x;
-    double covar_sensor_y;
-    double max_visible_dis;
 
     if (n.getParam("odom_frame_id", odom_frame_id))
     {
@@ -491,51 +477,14 @@ int main(int argc, char **argv)
     }
 
 
-    if (n.getParam("vx_std", vx_std))
-    {
-        ROS_INFO("vx_std: %f", vx_std);
-    }else
-    {
-        ROS_ERROR("Unable to get param 'vx_std'");
-    }
 
 
-    if (n.getParam("the_std", the_std))
-    {
-        ROS_INFO("the_std: %f", the_std);
-    }else
-    {
-        ROS_ERROR("Unable to get param 'the_std'");
-    }
 
-    if (n.getParam("covar_sensor_x", covar_sensor_x))
-    {
-        ROS_INFO("covar_sensor_x: %f", covar_sensor_x);
-    }else
-    {
-        ROS_ERROR("Unable to get param 'covar_sensor_x'");
-    }
 
-    if (n.getParam("covar_sensor_y", covar_sensor_y))
-    {
-        ROS_INFO("covar_sensor_y: %f", covar_sensor_y);
-    }else
-    {
-        ROS_ERROR("Unable to get param 'covar_sensor_y'");
-    }
-
-    if (n.getParam("max_visible_dis", max_visible_dis))
-    {
-        ROS_INFO("max_visible_dis: %f", max_visible_dis);
-    }else
-    {
-        ROS_ERROR("Unable to get param 'max_visible_dis'");
-    }
 
 
     Odometer odo_obj = Odometer(n, odom_frame_id, body_frame_id, wheel_base, wheel_radius);
-    SLAM slam_obj = SLAM(n, odom_frame_id, wheel_base, wheel_radius, odo_obj, 
-                            vx_std, the_std, covar_sensor_x, covar_sensor_y, max_visible_dis);
+    SLAM slam_obj = SLAM(n, odom_frame_id, body_frame_id, wheel_base, wheel_radius, odo_obj);
     ros::spin();
 
 
