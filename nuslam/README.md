@@ -24,4 +24,22 @@ In the experiment, the robot drives along closed path in a tube_world with sever
 - Sensor reading noise in y direction: 0.005
 - Maximum distance of the sensor reading: 0.7
 
-### Drive the robot forward and backward in a straight line
+Visualization Elements:
+- Green tubes: Ground truth tube positions
+- Red tubes: Current sensor reading for visible tubes
+- Blue tubes: Current SLAM map
+- Green path: Ground truth path
+- White path: Odometry path
+- Orange path: SLAM path
+
+### Ground Truth Map
+![truth map](images/truth_tube.png)
+
+### Sensor Reading (Only reading tube within sensor radius)
+![sensor_map](images/sensor.png)
+
+### SLAM Map
+![slam_map](images/slam_tube.png)
+
+### Compare SLAM Map to Groud Truth
+![combined](images/combine.png)
