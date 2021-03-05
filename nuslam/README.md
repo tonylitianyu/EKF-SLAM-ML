@@ -43,3 +43,6 @@ Visualization Elements:
 
 ### Compare SLAM Map to Groud Truth
 ![combined](images/combine.png)
+
+### Compare paths (Ground_truth, Odom, and SLAM)
+![2d](images/slam_tube_2d.png)
