@@ -132,25 +132,26 @@ class TubeWorld{
 
         void callback_vel(const geometry_msgs::Twist &vel)
         {
-            if (vel.linear.x < 0.0001 || vel.linear.x > -0.0001){
-                x_vel = vel.linear.x;
-            }else{
-                static std::default_random_engine random_x(seed);
-                static std::normal_distribution<double> x_noise(0.0, vx_std);
-                x_vel = vel.linear.x + x_noise(random_x);
-            }
+            // if (vel.linear.x < 0.0001 && vel.linear.x > -0.0001){
+            //     x_vel = vel.linear.x;
+            // }else{
+            //     static std::default_random_engine random_x(seed);
+            //     static std::normal_distribution<double> x_noise(0.0, vx_std);
+            //     x_vel = vel.linear.x + x_noise(random_x);
+            // }
 
             
-            if (vel.angular.z < 0.0001 || vel.angular.z > -0.0001){
-                ang_vel = vel.angular.z;
-            }else{
-                static std::default_random_engine random_the(seed);
-                static std::normal_distribution<double> the_noise(0.0, the_std);
-                ang_vel = vel.angular.z + the_noise(random_the);
-            }
+            // if (vel.angular.z < 0.0001 && vel.angular.z > -0.0001){
+            //     ang_vel = vel.angular.z;
+            // }else{
+            //     static std::default_random_engine random_the(seed);
+            //     static std::normal_distribution<double> the_noise(0.0, the_std);
+            //     ROS_ERROR("%f", the_noise(random_the));
+            //     ang_vel = vel.angular.z + the_noise(random_the);
+            // }
 
-            // x_vel = vel.linear.x;
-            // ang_vel = vel.angular.z;
+            x_vel = vel.linear.x;
+            ang_vel = vel.angular.z;
 
 
         }
@@ -229,29 +230,33 @@ class TubeWorld{
             robot_truth_marker_pub.publish(true_turtle_marker);
 
             //add path
-            // geometry_msgs::PoseStamped pose;
-            // pose.header.stamp = ros::Time::now();
-            // pose.header.frame_id = "world";
-            // pose.pose.position.x = dd.getPosition().x;
-            // pose.pose.position.y = dd.getPosition().y;
-            // pose.pose.position.z = 0.0;
-            // pose.pose.orientation.x = q.x();
-            // pose.pose.orientation.y = q.y();
-            // pose.pose.orientation.z = q.z();
-            // pose.pose.orientation.w = q.w();
+            geometry_msgs::PoseStamped pose;
+            pose.header.stamp = ros::Time::now();
+            pose.header.frame_id = "world";
+            pose.pose.position.x = dd.getPosition().x;
+            pose.pose.position.y = dd.getPosition().y;
+            pose.pose.position.z = 0.0;
+            pose.pose.orientation.x = q.x();
+            pose.pose.orientation.y = q.y();
+            pose.pose.orientation.z = q.z();
+            pose.pose.orientation.w = q.w();
 
-            // real_path.header.stamp = ros::Time::now();
-            // real_path.header.frame_id = "world";
-            // real_path.poses.push_back(pose);
+            real_path.header.stamp = ros::Time::now();
+            real_path.header.frame_id = "world";
+            real_path.poses.push_back(pose);
 
-            // path_pub.publish(real_path);
+            path_pub.publish(real_path);
         }
 
+
+        double distanceToTube(int m){
+            return sqrt(pow(dd.getPosition().x-coor_x[m],2)+pow(dd.getPosition().y-coor_y[m],2));
+        }
 
         std::vector<double> findCollisionTubePos(){
             std::vector<double> tube_pos;
             for (int i = 0; i < coor_x.size(); i++){
-                double dis = sqrt(pow(dd.getPosition().x-coor_x[i],2)+pow(dd.getPosition().y-coor_y[i],2));;
+                double dis = distanceToTube(i);
                 if (dis < (radius + wheel_base)){
                     tube_pos.push_back(coor_x[i]);
                     tube_pos.push_back(coor_y[i]);
@@ -325,7 +330,12 @@ class TubeWorld{
                 fake_tube_marker.pose.position.z = 0.15;
                 fake_tube_marker.pose.orientation.w = 1.0;
 
-                fake_tube_marker.action = visualization_msgs::Marker::ADD;
+
+                if (distanceToTube(j) > max_visible_dis){
+                    fake_tube_marker.action = visualization_msgs::Marker::DELETE;
+                }else{
+                    fake_tube_marker.action = visualization_msgs::Marker::ADD;
+                }
 
 
                 fake_tube_marker_array.markers.push_back(fake_tube_marker);

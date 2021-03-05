@@ -1,4 +1,4 @@
 #The parameters for the cardboard tubes in the sim world
-tube_coor_x: [0.5, 0.5]      #The x coordinates of the tubes
-tube_coor_y: [0.0, -0.5]      #The y coordinates of the tubes
+tube_coor_x: [0.5, 0.6, -2.0]      #The x coordinates of the tubes
+tube_coor_y: [0.0, -0.5, 2.0]      #The y coordinates of the tubes
 tube_radius: 0.0762           #The radius of the tube

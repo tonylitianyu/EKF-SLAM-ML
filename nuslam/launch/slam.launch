@@ -1,4 +1,6 @@
 <launch>
+    <arg name="robot" default="localhost" doc="the hostname of the turtlebot" />
+    <machine name="turtlebot" address="$(arg robot)" env-loader="/home/ubuntu/loader.sh" user="ubuntu" />
     <rosparam command="load" file="$(find rigid2d)/config/fake_turtle_param.yaml" />
     <rosparam command="load" file="$(find nurtlesim)/config/noise_param.yaml" />
     <rosparam command="load" file="$(find nurtlesim)/config/tube_param.yaml" />

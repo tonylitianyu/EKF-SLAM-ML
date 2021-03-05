@@ -92,7 +92,7 @@ class Odometer
         /// \brief publish updated odometry information and transformation
         void publishUpdatedOdometry(){
 
-            body_twist = dd.getBodyTwistForUpdate(delta_left_wheel_angle, delta_right_wheel_angle);
+            rigid2d::Twist2D body_twist_odom = dd.getBodyTwistForUpdate(delta_left_wheel_angle, delta_right_wheel_angle);
             dd.updatePose(delta_left_wheel_angle, delta_right_wheel_angle);
 
             static tf2_ros::TransformBroadcaster odom_br;
@@ -111,9 +111,9 @@ class Odometer
             odom.pose.pose.orientation.z = q.z();
             odom.pose.pose.orientation.w = q.w();
             odom.child_frame_id = body_frame_id;
-            odom.twist.twist.linear.x = body_twist.linearX();
-            odom.twist.twist.linear.y = body_twist.linearY();
-            odom.twist.twist.angular.z = body_twist.angular();
+            odom.twist.twist.linear.x = body_twist_odom.linearX();
+            odom.twist.twist.linear.y = body_twist_odom.linearY();
+            odom.twist.twist.angular.z = body_twist_odom.angular();
             odom_pub.publish(odom);
 
             //source: http://wiki.ros.org/tf2/Tutorials/Writing%20a%20tf2%20broadcaster%20%28C%2B%2B%29
@@ -170,6 +170,7 @@ class Odometer
 
 
         rigid2d::Twist2D & getCurrentTwist(){
+            body_twist = dd.getBodyTwistForUpdate(delta_left_wheel_angle*10.0, delta_right_wheel_angle*10.0);
             return body_twist;
         }
 
@@ -177,6 +178,10 @@ class Odometer
     
 };
 
+
+enum class SLAMState {WAIT_SENSOR, INIT, UPDATE};
+
+static SLAMState state_machine = SLAMState::WAIT_SENSOR;
 
 class SLAM
 {
@@ -206,16 +211,19 @@ class SLAM
         double covar_sensor_y;
         double max_visible_dis;
 
-        int state_machine;
+
         int n_tubes;
 
+        bool sensor_update_flag;
+        bool state_update_flag;
 
+        std::vector<bool> visible_list;
 
     public:
         SLAM(ros::NodeHandle nh, std::string odom_frame_id_str, 
                 double wheel_base_val, double wheel_radius_val, Odometer & odometer, 
                 double vx_std, double the_std, double covar_sensor_x, double covar_sensor_y, double max_visible_dis):
-        timer(nh.createTimer(ros::Duration(0.01), &SLAM::main_loop, this)),
+        timer(nh.createTimer(ros::Duration(0.1), &SLAM::main_loop, this)),
         fake_sensor_sub(nh.subscribe("fake_sensor", 1000, &SLAM::callback_fake_sensor, this)),
         slam_path_pub(nh.advertise<nav_msgs::Path>("slam_path", 100)),
         slam_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("slam_tube", 10, true)),
@@ -228,10 +236,10 @@ class SLAM
         covar_sensor_x(covar_sensor_x),
         covar_sensor_y(covar_sensor_y),
         max_visible_dis(max_visible_dis),
-        n_tubes(0)
+        n_tubes(0),
+        sensor_update_flag(false),
+        state_update_flag(false)
         {
-
-            state_machine = 0;
         }
 
         void publishFrames(){
@@ -261,18 +269,33 @@ class SLAM
         void callback_fake_sensor(const visualization_msgs::MarkerArray &tube){
             std::vector<visualization_msgs::Marker> fake_tubes = tube.markers;
             sensor_reading = zeros<mat>(fake_tubes.size()*2,1);
-            for (int i = 0; i < fake_tubes.size(); i++){
-                sensor_reading(i*2,0) = fake_tubes[i].pose.position.x;
-                sensor_reading(i*2+1,0) = fake_tubes[i].pose.position.y;
 
-            }
 
-            if (fake_tubes.size() != 0 && state_machine == 0){
-                state_machine = 1;
+            if (fake_tubes.size() != 0 && state_machine == SLAMState::WAIT_SENSOR){
+                //first receive sensor reading, initialize slam!
+                state_machine = SLAMState::INIT;
                 n_tubes = fake_tubes.size();
+                for (int i = 0; i < fake_tubes.size(); i++){
+                    visible_list.push_back(false);
+                }
+            }else{
+
+                //update sensor reading
+                for (int i = 0; i < fake_tubes.size(); i++){
+                    sensor_reading(i*2,0) = fake_tubes[i].pose.position.x;
+                    sensor_reading(i*2+1,0) = fake_tubes[i].pose.position.y;
+
+                    if (state_update_flag){
+                        //check visibility
+                        if (sqrt(pow(slam_agent.getStateX() - fake_tubes[i].pose.position.x, 2.0)+pow(slam_agent.getStateY() - fake_tubes[i].pose.position.y, 2.0)) < max_visible_dis){
+                            visible_list[i] = true;
+                        }
+                    }
+
+                }
             }
 
-
+            sensor_update_flag = true;
 
         }
 
@@ -283,7 +306,7 @@ class SLAM
             slam_ori.setRPY(0,0,slam_agent.getStateTheta());
             geometry_msgs::PoseStamped pose;
             pose.header.stamp = ros::Time::now();
-            pose.header.frame_id = "world";
+            pose.header.frame_id = "map";
             pose.pose.position.x = slam_agent.getStateX();
             pose.pose.position.y = slam_agent.getStateY();
             pose.pose.position.z = 0.0;
@@ -321,10 +344,12 @@ class SLAM
             visualization_msgs::MarkerArray slam_tube_marker_array;
             for (int i = 0; i < n_tubes; i++){
                 visualization_msgs::Marker slam_tube_marker;
-                slam_tube_marker.header.frame_id = "world";
+                slam_tube_marker.header.frame_id = "map";
                 slam_tube_marker.header.stamp = ros::Time::now();
                 slam_tube_marker.ns = "landmark";
+
                 slam_tube_marker.action = visualization_msgs::Marker::ADD;
+
                 slam_tube_marker.lifetime = ros::Duration(0.1);
 
                 slam_tube_marker.id = i;
@@ -352,21 +377,26 @@ class SLAM
         void main_loop(const ros::TimerEvent &){
 
             publishFrames();
+            rigid2d::Vector2D vv;
+            rigid2d::Twist2D test_twist;
+
 
 
             switch(state_machine)
             {
-                case 0:
+                case SLAMState::WAIT_SENSOR:
                     break;
-                case 1:
-                    slam_agent = rigid2d::EKF_SLAM(n_tubes, {the_std, vx_std, 0.0});
-                    state_machine = 2;
+                case SLAMState::INIT:
+                    slam_agent = rigid2d::EKF_SLAM(n_tubes);
+                    state_machine = SLAMState::UPDATE;
                     break;
-                case 2:
-
-                    slam_agent.prediction(odometer.getCurrentTwist());
-                    
-                    slam_agent.measurement(sensor_reading);
+                case SLAMState::UPDATE:
+                    if (sensor_update_flag){
+                        slam_agent.prediction(odometer.getCurrentTwist());
+                        slam_agent.measurement(sensor_reading, visible_list);
+                        sensor_update_flag = false;
+                        state_update_flag = true;
+                    }
 
                     publishSLAMPath();
                     publishSLAMLandmark();

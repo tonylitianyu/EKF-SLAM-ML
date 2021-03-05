@@ -24,12 +24,12 @@
  rigid2d::EKF_SLAM::EKF_SLAM(){
  }
 
-rigid2d::EKF_SLAM::EKF_SLAM(int n_measurements, std::vector<double> process_noise){
+rigid2d::EKF_SLAM::EKF_SLAM(int n_measurements){
     n = n_measurements;
     mat S_left_top = zeros<mat>(3,3);
     mat S_right_top = zeros<mat>(3,2*n);
     mat S_left_bot = zeros<mat>(2*n,3);
-    mat S_right_bot = eye(2*n, 2*n)*100000000;
+    mat S_right_bot = eye(2*n, 2*n)*1000000;
 
     mat S_top = join_horiz(S_left_top, S_right_top);
     mat S_bot = join_horiz(S_left_bot, S_right_bot);
@@ -38,9 +38,9 @@ rigid2d::EKF_SLAM::EKF_SLAM(int n_measurements, std::vector<double> process_nois
 
 
     Q = zeros<mat>(3+2*n, 3+2*n);
-    Q(0,0) = process_noise[0];
-    Q(1,1) = process_noise[1];
-    Q(2,2) = process_noise[2];
+    Q(0,0) = 0.0001;
+    Q(1,1) = 0.0001;
+    Q(2,2) = 0.0001;
 
 
     state = zeros<mat>(3+2*n, 1);
@@ -65,6 +65,7 @@ void rigid2d::EKF_SLAM::prediction(const rigid2d::Twist2D & twist){
 
 
     double dtheta = twist.angular();
+    //std::cout << dtheta << std::endl;
     double dx = twist.linearX();
     double dy = 0.0;//twist.linearY();
 
@@ -100,9 +101,11 @@ void rigid2d::EKF_SLAM::prediction(const rigid2d::Twist2D & twist){
     mat At = eye(size(A)) + A;
     sigma = At*sigma*At.t() + Q;
 
+    std::cout << state << std::endl;
+
 }
 
-void rigid2d::EKF_SLAM::measurement(mat sensor_reading){
+void rigid2d::EKF_SLAM::measurement(mat sensor_reading, std::vector<bool> visible_list){
     double theta = state(0,0);
     double x = state(1,0);
     double y = state(2,0);
@@ -127,6 +130,10 @@ void rigid2d::EKF_SLAM::measurement(mat sensor_reading){
     
 
     for(int i = 0; i < n; i++){
+
+        if (visible_list[i] == false){
+            continue;
+        }
         //z_measurement
         mat z_measure = zeros<mat>(2,1);
 
@@ -138,18 +145,14 @@ void rigid2d::EKF_SLAM::measurement(mat sensor_reading){
         z_measure(0,0) = ri;
         z_measure(1,0) = phii;
 
-
-        if (i == 0){
-            std::cout << phii << std::endl;
-        }
         
 
         //z_hat
         mat hj = zeros<mat>(2,1);
-        double esti_ri = sqrt(pow(get_tube_x(i) - x, 2)+pow(get_tube_y(i) - y, 2));
+        double esti_ri = sqrt(pow(get_tube_x(i) - x, 2.0)+pow(get_tube_y(i) - y, 2.0));
         double esti_phii = atan2(get_tube_y(i) - y, get_tube_x(i) - x) - theta;
         hj(0,0) = esti_ri;
-        hj(1,0) = esti_phii;
+        hj(1,0) = rigid2d::normalize_angle(esti_phii);
 
 
         double delta_x = get_tube_x(i) - x;
@@ -187,6 +190,8 @@ void rigid2d::EKF_SLAM::measurement(mat sensor_reading){
 
         mat kh = Ki*Hj;
         sigma = (eye(size(kh))-kh)*sigma;
+
+
 
 
 

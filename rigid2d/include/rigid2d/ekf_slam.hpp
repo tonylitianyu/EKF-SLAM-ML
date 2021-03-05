@@ -23,13 +23,13 @@ namespace rigid2d
             EKF_SLAM();
 
 
-            EKF_SLAM(int n_measurements, std::vector<double> process_noise);
+            EKF_SLAM(int n_measurements);
 
 
             void prediction(const rigid2d::Twist2D & twist);
 
 
-            void measurement(mat sensor_reading);
+            void measurement(mat sensor_reading, std::vector<bool> visible_list);
 
             double getStateX();
             double getStateY();
