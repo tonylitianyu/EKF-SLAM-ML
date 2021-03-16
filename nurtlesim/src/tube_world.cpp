@@ -32,6 +32,7 @@
 #include "geometry_msgs/TransformStamped.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "sensor_msgs/JointState.h"
+#include "sensor_msgs/LaserScan.h"
 #include "rigid2d/diff_drive.hpp"
 #include "visualization_msgs/MarkerArray.h"
 #include "visualization_msgs/Marker.h"
@@ -52,8 +53,12 @@ class TubeWorld{
         ros::Publisher robot_truth_marker_pub;
         ros::Publisher path_pub;
         ros::Publisher fake_tube_pub;
+        ros::Publisher scan_pub;
+
+        visualization_msgs::MarkerArray true_tube_marker_array;
 
         int fake_tube_counter;
+        int scan_counter;
 
         nav_msgs::Path real_path;
 
@@ -85,6 +90,9 @@ class TubeWorld{
 
         unsigned seed;
 
+        double world_border_width;
+        double range_std;
+
 
     public:
         /// \brief create the initial setup for tube world
@@ -104,9 +112,11 @@ class TubeWorld{
         /// \param the_std - the standard deviation noise of commanded twist in angular direction
         /// \param slip_min - the minimum wheel slip noise
         /// \param slip_max - the maximum wheel slip noise
+        /// \param world_border_width - the side length of the world rectangle border
+        /// \param range_std - the standard deviation noise of laser scan range
         TubeWorld(ros::NodeHandle nh, std::vector<double> coor_x, std::vector<double> coor_y, double radius, double covar_sensor_x,
                 double covar_sensor_y, double max_visible_dis, std::string left_wheel_joint_str, std::string right_wheel_joint_str, double wheel_base_val, double wheel_radius_val,
-                double vx_std, double the_std, double slip_min, double slip_max):
+                double vx_std, double the_std, double slip_min, double slip_max, double world_border_width, double range_std):
         timer(nh.createTimer(ros::Duration(0.01), &TubeWorld::main_loop, this)),
         coor_x(coor_x),
         coor_y(coor_y),
@@ -133,10 +143,13 @@ class TubeWorld{
         vx_std(vx_std),
         the_std(the_std),
         slip_min(slip_min),
-        slip_max(slip_max)
+        slip_max(slip_max),
+        scan_pub(nh.advertise<sensor_msgs::LaserScan>("scan", 50)),
+        world_border_width(world_border_width),
+        range_std(range_std)
 
         {
-            visualization_msgs::MarkerArray true_tube_marker_array;
+            
             for (int i = 0; i < coor_x.size(); i++){
                 visualization_msgs::Marker true_tube_marker;
                 true_tube_marker.header.frame_id = "world";
@@ -400,6 +413,154 @@ class TubeWorld{
         }
 
 
+        double getLineCircleIntersection(double x1, double y1, double x2, double y2, double laser_max_range){
+            
+            double dx = x2 - x1;
+            double dy = y2 - y1;
+
+            double dr = sqrt(pow(dx,2.0)+pow(dy,2.0));
+            double D = x1*y2 - x2*y1;
+            double delta = pow(radius,2.0)*pow(dr,2.0) - pow(D,2.0);
+            if (delta > 0){
+                double sign_of_dy = 1.0;
+                if (dy < 0){
+                    sign_of_dy = -1.0;
+                }
+                double inter_x1 = (D*dy+sign_of_dy*dx*sqrt(delta))/pow(dr,2.0);
+                double inter_y1 = (-D*dx+fabs(dy)*sqrt(delta))/pow(dr,2.0);
+
+                double inter_x2 = (D*dy-sign_of_dy*dx*sqrt(delta))/pow(dr,2.0);
+                double inter_y2 = (-D*dx-fabs(dy)*sqrt(delta))/pow(dr,2.0);
+
+                double dis1 = sqrt(pow(x1 - inter_x1,2.0)+pow(y1 - inter_y1, 2.0));
+                double dis2 = sqrt(pow(x1 - inter_x2,2.0)+pow(y1 - inter_y2, 2.0));
+                double min_tube_r = std::min(dis1,dis2);
+                return min_tube_r;
+
+                // std::cout << "dis1: " << dis1 << std::endl;
+                // std::cout << "dis2: " << dis2 << std::endl;
+                // std::cout << "============" << std::endl;
+
+            }
+
+            return laser_max_range;
+        }
+
+        void publishScan(){
+            unsigned int num_readings = 360;
+            double ranges[num_readings];
+            double intensities[num_readings];
+
+            double box_width = world_border_width;
+            double origin_x = dd.getPosition().x;
+            double origin_y = dd.getPosition().y;
+            double x_dis = box_width/2.0 - dd.getPosition().x;
+            double y_dis = box_width/2.0 - dd.getPosition().y;
+            double angle_resolution = 2*rigid2d::PI/num_readings;
+
+            std::normal_distribution<> range_noise(0.0, range_std);
+
+
+            sensor_msgs::LaserScan scan;
+            scan.header.stamp = ros::Time::now();
+            scan.header.frame_id = "turtle";
+            scan.angle_min = 0.0;
+            scan.angle_max = 2*rigid2d::PI;
+            scan.angle_increment = angle_resolution;
+            scan.range_min = 0.12;
+            scan.range_max = 3.5;
+
+            scan.ranges.resize(num_readings);
+            scan.intensities.resize(num_readings);
+
+            //getLineCircleIntersection(-3.0,0.0,3.0,0.0, scan.range_max);
+            double largest_tube_scan_theta = 2*atan2(radius,scan.range_min);
+            
+
+
+            for (unsigned int i = 0; i < num_readings; ++i){
+                
+                double curr_ang = rigid2d::normalize_angle(angle_resolution * i + dd.getTheta());
+                double x_dis_temp = x_dis;
+                double y_dis_temp = y_dis;
+                if (curr_ang < 0){
+                    y_dis_temp = -(box_width - y_dis);
+                }
+
+                if (curr_ang  > rigid2d::PI/2.0 or curr_ang < -rigid2d::PI/2.0){
+                    x_dis_temp = -(box_width - x_dis);
+                }
+                
+
+                double r = std::min(std::min(x_dis_temp/cos(curr_ang), y_dis_temp/sin(curr_ang)), 1.0);// + range_noise(get_random());
+
+                double x2 = r*cos(curr_ang);
+                double y2 = r*sin(curr_ang);
+
+                double min_r = r;
+
+                for (unsigned int m = 0; m < coor_x.size(); m++){
+
+                    rigid2d::Vector2D trans = {dd.getPosition().x, dd.getPosition().y};
+                    rigid2d::Transform2D Ttw = rigid2d::Transform2D(trans, dd.getTheta()).inv();
+
+
+                    rigid2d::Vector2D world_tube = {coor_x[m], coor_y[m]};
+                    rigid2d::Vector2D turtle_tube = Ttw(world_tube);
+
+                    double tube_bearing = atan2(turtle_tube.y, turtle_tube.x);
+                    if (m == 0){
+                        std::cout << "world tube x: " << coor_x[m] << std::endl;
+                        std::cout << "turtle tube x: " << turtle_tube.x << std::endl;
+                        std::cout << "range bearing: " << tube_bearing << std::endl;
+                        std::cout << "================" << std::endl;
+                    }
+                    double start_bearing = rigid2d::normalize_angle(tube_bearing + (largest_tube_scan_theta/2.0));
+                    double end_bearing = rigid2d::normalize_angle(tube_bearing - (largest_tube_scan_theta/2.0));
+
+                    bool scan_flag = false;
+
+                    if (start_bearing > 0 && end_bearing < 0){
+                        if (curr_ang < start_bearing && curr_ang > end_bearing){
+                            scan_flag = true;
+                        }
+                    }else if(start_bearing > 0 && end_bearing > 0){
+                        if (curr_ang < start_bearing && curr_ang > end_bearing){
+                            scan_flag = true;
+                        }
+                    }else if (start_bearing < 0 && end_bearing < 0){
+                        if (curr_ang < start_bearing && curr_ang > end_bearing){
+                            scan_flag = true;
+                        }
+                    }else if (start_bearing < 0 && end_bearing > 0){
+
+                        if (curr_ang < start_bearing || curr_ang > end_bearing){
+                            scan_flag = true;
+                        }
+                    }
+
+                    
+                    if (scan_flag){
+                        double temp_min_r = getLineCircleIntersection(origin_x - turtle_tube.x, origin_y - turtle_tube.y, 
+                                                                                x2 - turtle_tube.x, y2 - turtle_tube.y, r);
+                          
+                        min_r = std::min(min_r, temp_min_r);
+                    }
+
+                }
+
+
+               
+                scan.ranges[i] = min_r;
+                scan.intensities[i] = 100;
+            }
+
+            scan_pub.publish(scan);
+
+
+        }
+
+
 
 
         /// \brief The main control loop state machine
@@ -412,6 +573,13 @@ class TubeWorld{
                 fake_tube_counter = 0;
             }else{
                 fake_tube_counter++;
+            }
+
+            if (scan_counter == 20){
+                publishScan();
+                scan_counter = 0;
+            }else{
+                scan_counter++;
             }
         }
 
@@ -448,6 +616,9 @@ int main(int argc, char **argv)
     std::vector<double> tube_coor_x;
     std::vector<double> tube_coor_y;
     double tube_radius;
+
+    double world_border_width;
+    double range_std;
 
 
 
@@ -578,8 +749,24 @@ int main(int argc, char **argv)
         ROS_ERROR("Unable to get param 'max_visible_dis'");
     }
 
+    if (n.getParam("world_border_width", world_border_width))
+    {
+        ROS_INFO("world_border_width: %f", world_border_width);
+    }else
+    {
+        ROS_ERROR("Unable to get param 'world_border_width'");
+    }
+
+    if (n.getParam("range_std", range_std))
+    {
+        ROS_INFO("range_std: %f", range_std);
+    }else
+    {
+        ROS_ERROR("Unable to get param 'range_std'");
+    }
+
     TubeWorld tw = TubeWorld(n, tube_coor_x, tube_coor_y, tube_radius, covar_sensor_x, covar_sensor_y, max_visible_dis, left_wheel_joint, right_wheel_joint, wheel_base, wheel_radius, 
-                                vx_std, the_std, slip_min, slip_max);
+                                vx_std, the_std, slip_min, slip_max, world_border_width, range_std);
 
 
 
