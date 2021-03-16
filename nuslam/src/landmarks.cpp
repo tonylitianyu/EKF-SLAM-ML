@@ -16,7 +16,9 @@
 #include "ros/ros.h"
 #include "geometry_msgs/Twist.h"
 #include "sensor_msgs/JointState.h"
+#include "sensor_msgs/LaserScan.h"
 #include "rigid2d/diff_drive.hpp"
+#include <cmath>
 
 
 /// \brief - method for identifying landmarks
@@ -24,16 +26,57 @@ class Landmarks{
     private:
         ros::NodeHandle n;
         ros::Timer timer;
+        ros::Subscriber scan_sub;
 
+
+        std::vector<std::vector<double>> point_cluster;
+        bool test_flag = true;
     public:
         /// \brief create the initial setup for the simulator
         ///
         Landmarks(ros::NodeHandle nh):
-        timer(nh.createTimer(ros::Duration(0.01), &Landmarks::main_loop, this))
+        timer(nh.createTimer(ros::Duration(0.01), &Landmarks::main_loop, this)),
+        scan_sub(nh.subscribe("scan", 1000, &Landmarks::callback_scan, this))
         {
 
         }
 
+
+        void callback_scan(const sensor_msgs::LaserScan &point)
+        {
+            point_cluster.clear();
+            unsigned int num_readings = 360;
+            double thres = 0.2;
+
+            double curr_dis = point.ranges[0];
+            std::vector<double> curr_cluster;
+
+            
+            for (unsigned int i = 1; i < num_readings; i++){
+                if (fabs(point.ranges[i] - point.ranges[i-1]) < thres){
+                    curr_cluster.push_back(point.ranges[i]);
+                    
+                }else{
+                    
+                    if (curr_cluster.size() > 3){
+                        point_cluster.push_back(curr_cluster);
+                    }
+                    curr_cluster.clear();
+                }
+                
+            }
+
+            if (test_flag){
+                for(unsigned int i = 0; i < point_cluster.size(); i++){
+                    for(unsigned int j = 0; j < point_cluster[i].size(); j++){
+                        std::cout << point_cluster[i][j] << std::endl;
+                    }
+                    std::cout << "===========" << std::endl;
+                }
+            }
+            test_flag = false;
+            //ROS_ERROR("%d", point_cluster.size());
+        }
 
 
         /// \brief The main control loop state machine

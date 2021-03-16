@@ -1,0 +1,5 @@
+<launch>
+    <include file="$(find nurtlesim)/launch/tube_world.launch" />
+     <node name="landmarks" pkg="nuslam" type="landmarks" />
+
+</launch>

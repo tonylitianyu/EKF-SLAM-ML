@@ -485,7 +485,7 @@ class TubeWorld{
             for (unsigned int i = 0; i < num_readings; ++i){
                 
 
-                double min_r = 1.0;
+                double min_r = 3.5;
                 
                 double curr_ang = rigid2d::normalize_angle(angle_resolution * i);
                 double x2 = min_r*cos(curr_ang);
