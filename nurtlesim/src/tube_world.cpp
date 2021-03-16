@@ -476,76 +476,87 @@ class TubeWorld{
             //getLineCircleIntersection(-3.0,0.0,3.0,0.0, scan.range_max);
             double largest_tube_scan_theta = 2*atan2(radius,scan.range_min);
             
+            rigid2d::Vector2D trans = {dd.getPosition().x, dd.getPosition().y};
+            rigid2d::Transform2D Ttw = rigid2d::Transform2D(trans, dd.getTheta()).inv();
+
+
 
 
             for (unsigned int i = 0; i < num_readings; ++i){
                 
-                double curr_ang = rigid2d::normalize_angle(angle_resolution * i + dd.getTheta());
+
+                double min_r = 1.0;
+                
+                double curr_ang = rigid2d::normalize_angle(angle_resolution * i);
+                double x2 = min_r*cos(curr_ang);
+                double y2 = min_r*sin(curr_ang);
+
                 double x_dis_temp = x_dis;
                 double y_dis_temp = y_dis;
-                if (curr_ang < 0){
+                double box_ang = rigid2d::normalize_angle(angle_resolution * i + dd.getTheta());
+                if (box_ang < 0){
                     y_dis_temp = -(box_width - y_dis);
                 }
 
-                if (curr_ang  > rigid2d::PI/2.0 or curr_ang < -rigid2d::PI/2.0){
+                if (box_ang  > rigid2d::PI/2.0 or box_ang < -rigid2d::PI/2.0){
                     x_dis_temp = -(box_width - x_dis);
                 }
                 
 
-                double r = std::min(std::min(x_dis_temp/cos(curr_ang), y_dis_temp/sin(curr_ang)), 1.0);// + range_noise(get_random());
+                double r = std::min(x_dis_temp/cos(box_ang), y_dis_temp/sin(box_ang));// + range_noise(get_random());
 
-                double x2 = r*cos(curr_ang);
-                double y2 = r*sin(curr_ang);
 
-                double min_r = r;
+
+                min_r = std::min(r, min_r);
 
                 for (unsigned int m = 0; m < coor_x.size(); m++){
-
-                    rigid2d::Vector2D trans = {dd.getPosition().x, dd.getPosition().y};
-                    rigid2d::Transform2D Ttw = rigid2d::Transform2D(trans, dd.getTheta()).inv();
-
-
                     rigid2d::Vector2D world_tube = {coor_x[m], coor_y[m]};
                     rigid2d::Vector2D turtle_tube = Ttw(world_tube);
+                    double dis = distanceToTube(m);
 
                     double tube_bearing = atan2(turtle_tube.y, turtle_tube.x);
-                    if (m == 0){
-                        std::cout << "world tube x: " << coor_x[m] << std::endl;
-                        std::cout << "turtle tube x: " << turtle_tube.x << std::endl;
-                        std::cout << "range bearing: " << tube_bearing << std::endl;
-                        std::cout << "================" << std::endl;
-                    }
-                    double start_bearing = rigid2d::normalize_angle(tube_bearing + (largest_tube_scan_theta/2.0));
-                    double end_bearing = rigid2d::normalize_angle(tube_bearing - (largest_tube_scan_theta/2.0));
+
+                    double start_bearing = rigid2d::normalize_angle(tube_bearing - (largest_tube_scan_theta/2.0));
+                    double end_bearing = rigid2d::normalize_angle(tube_bearing + (largest_tube_scan_theta/2.0));
+
 
                     bool scan_flag = false;
+                    if (start_bearing > 0 && end_bearing > 0){
+                        if (curr_ang > start_bearing && curr_ang < end_bearing){
+                            scan_flag = true;
+                        }
 
-                    if (start_bearing > 0 && end_bearing < 0){
-                        if (curr_ang < start_bearing && curr_ang > end_bearing){
+                    }else if (start_bearing > 0 && end_bearing < 0){
+                        if (curr_ang > start_bearing || curr_ang < end_bearing){
                             scan_flag = true;
                         }
-                    }else if(start_bearing > 0 && end_bearing > 0){
-                        if (curr_ang < start_bearing && curr_ang > end_bearing){
-                            scan_flag = true;
-                        }
+
                     }else if (start_bearing < 0 && end_bearing < 0){
-                        if (curr_ang < start_bearing && curr_ang > end_bearing){
+                        if (curr_ang > start_bearing && curr_ang < end_bearing){
                             scan_flag = true;
                         }
+
                     }else if (start_bearing < 0 && end_bearing > 0){
-
-                        if (curr_ang < start_bearing || curr_ang > end_bearing){
+                        if (curr_ang > start_bearing && curr_ang < end_bearing){
                             scan_flag = true;
                         }
                     }
 
-                    
-                    if (scan_flag){
-                        double temp_min_r = getLineCircleIntersection(origin_x - turtle_tube.x, origin_y - turtle_tube.y, 
-                                                                                x2 - turtle_tube.x, y2 - turtle_tube.y, r);
-                          
-                        min_r = std::min(min_r, temp_min_r);
+
+
+                    if (scan_flag == true){
+                        rigid2d::Vector2D tube_in_turtle = {turtle_tube.x, turtle_tube.y};
+                        rigid2d::Transform2D Ttube_turtle = rigid2d::Transform2D(tube_in_turtle, 0.0).inv();
+                        rigid2d::Vector2D turtle_turtle = {0.0, 0.0};
+                        rigid2d::Vector2D turtle_in_tube = Ttube_turtle(turtle_turtle);
+
+                        rigid2d::Vector2D border_turtle = {x2,y2};
+                        rigid2d::Vector2D border_in_tube = Ttube_turtle(border_turtle);
+                        double temp_min_r = getLineCircleIntersection(turtle_in_tube.x, turtle_in_tube.y, border_in_tube.x, border_in_tube.y, min_r);
+                        min_r = std::min(temp_min_r, min_r);
+                        
                     }
+
 
                 }
 
