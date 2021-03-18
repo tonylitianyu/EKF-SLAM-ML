@@ -129,6 +129,7 @@ add_library(${PROJECT_NAME}
   src/diff_drive.cpp
   src/rigid2d.cpp
   src/ekf_slam.cpp
+  src/circle_fitting.cpp
 )
 
 ## Add cmake target dependencies of the library
