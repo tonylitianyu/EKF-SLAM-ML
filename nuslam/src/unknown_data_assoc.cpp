@@ -1,5 +1,5 @@
-/// \file  slam.cpp
-/// \brief Extended Kalman Filter SLAM node
+/// \file  unknown_data_assoc.cpp
+/// \brief Extended Kalman Filter SLAM node with unknown data association
 ///
 /// PARAMETERS:
 ///     odom_frame_id (string): The name of the odometry tf frame
@@ -227,6 +227,8 @@ class SLAM
         std::vector<bool> visible_list;
         std::vector<bool> known_list;
 
+        std::vector<rigid2d::Vector2D> scan_measures;
+
     public:
         /// \brief create the initial setup for slam
         ///
@@ -308,32 +310,41 @@ class SLAM
             //update sensor reading
 
             
-            for (int i = 0; i < fake_tubes.size(); i++){
-                sensor_reading(i*2,0) = fake_tubes[i].pose.position.x;
-                sensor_reading(i*2+1,0) = fake_tubes[i].pose.position.y;
+            // for (int i = 0; i < fake_tubes.size(); i++){
+            //     sensor_reading(i*2,0) = fake_tubes[i].pose.position.x;
+            //     sensor_reading(i*2+1,0) = fake_tubes[i].pose.position.y;
                           
-                if (state_update_flag){
-                    //check visibility
-                    if (fake_tubes[i].action == visualization_msgs::Marker::ADD){
+            //     if (state_update_flag){
+            //         //check visibility
+            //         if (fake_tubes[i].action == visualization_msgs::Marker::ADD){
                         
-                        visible_list[i] = true;
+            //             visible_list[i] = true;
                         
-                        known_list[i] = true;
+            //             known_list[i] = true;
 
-                    }else{
-                        visible_list[i] = false;
-                    }
+            //         }else{
+            //             visible_list[i] = false;
+            //         }
 
-                }
+            //     }
 
-            }
+            // }
 
-            sensor_update_flag = true;
+            // sensor_update_flag = true;
 
         }
 
         void callback_scan_sensor(const visualization_msgs::MarkerArray &tube){
             std::vector<visualization_msgs::Marker> scan_tubes = tube.markers;
+            scan_measures.clear();
+            
+            for(int i = 0; i < scan_tubes.size(); i++){
+                rigid2d::Vector2D pos = {scan_tubes[i].pose.position.x, scan_tubes[i].pose.position.y};
+                scan_measures.push_back(pos);
+            }
+
+            sensor_update_flag = true;
+
         }
 
         /// \brief publish path for turtle in SLAM state
@@ -378,8 +389,8 @@ class SLAM
         /// \brief publish landmark SLAM state
         void publishSLAMLandmark(){
             mat landmark_state = slam_agent.getStateLandmark();
-            visualization_msgs::MarkerArray slam_tube_marker_array;            
-            
+            visualization_msgs::MarkerArray slam_tube_marker_array; 
+
             for (int i = 0; i < known_list.size(); i++){
                 visualization_msgs::Marker slam_tube_marker;
                 slam_tube_marker.header.frame_id = "map";
@@ -420,8 +431,6 @@ class SLAM
 
             //publishFrames();
 
-
-
             switch(state_machine)
             {
                 case SLAMState::INIT:
@@ -431,7 +440,7 @@ class SLAM
                 case SLAMState::UPDATE:
                     if (sensor_update_flag){
                         slam_agent.prediction(odometer.getCurrentTwist());
-                        slam_agent.measurement(sensor_reading, visible_list, known_list);
+                        slam_agent.data_association(scan_measures, known_list); //update known list
                         sensor_update_flag = false;
                         state_update_flag = true;
                     }
@@ -452,7 +461,7 @@ class SLAM
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "odometer");
+    ros::init(argc, argv, "unknown_data_assoc");
     ros::NodeHandle n;
     
     std::string odom_frame_id;
@@ -529,4 +538,3 @@ int main(int argc, char **argv)
     return 0;
 
 }
-

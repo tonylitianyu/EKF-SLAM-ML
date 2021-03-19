@@ -5,7 +5,7 @@
 
 
 rigid2d::CircleFitting::CircleFitting(){
-    test_flag = true;
+    test_flag = false;
 }
 
 void rigid2d::CircleFitting::clusteringRanges(std::vector<double> ranges){
@@ -262,7 +262,7 @@ std::vector<rigid2d::Vector2D> rigid2d::CircleFitting::classifyCircle(std::vecto
         double mean_angle = sum_angle/(n_point_in_this_cluster - 2);
         double min_mean = 1.5708;
         double max_mean = 2.3562;
-        std::cout << r_cluster[i] << std::endl;
+        //std::cout << r_cluster[i] << std::endl;
 
 
         //rigid2d::Vector2D a_p_for_radius = curr_cluster[0];

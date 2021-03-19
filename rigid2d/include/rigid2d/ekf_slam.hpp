@@ -33,9 +33,9 @@ namespace rigid2d
             /// \brief correction update stage based on measurement
             /// \param sensor_reading - the sensor reading of the tube position
             /// \param visible_list - the visibility of each tube
-            void measurement(mat sensor_reading, std::vector<bool> visible_list);
+            void measurement(mat sensor_reading, std::vector<bool> visible_list, std::vector<bool> known_list);
 
-            void data_association();
+            void data_association(std::vector<rigid2d::Vector2D> measures, std::vector<bool> &known_list);
 
             /// \brief get SLAM estimation state in x
             /// \return estimated x position
@@ -70,6 +70,11 @@ namespace rigid2d
             /// \param m - the index of the landmark
             /// \return estimated y position of the landmark
             double get_tube_y(int m);
+
+            void initialize_landmark(rigid2d::Vector2D measure,int i);
+            double calculate_maha_dis(rigid2d::Vector2D jth_measure, int ith_tube);
+
+            
 
 
 
