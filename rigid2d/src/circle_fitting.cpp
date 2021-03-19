@@ -247,9 +247,17 @@ std::vector<rigid2d::Vector2D> rigid2d::CircleFitting::classifyCircle(std::vecto
         double mean_angle = sum_angle/(n_point_in_this_cluster - 2);
         double min_mean = 1.5708;
         double max_mean = 2.3562;
-        if (mean_angle > min_mean && mean_angle < max_mean){
+
+
+        rigid2d::Vector2D a_p_for_radius = curr_cluster[0];
+        double curr_cluster_radius = sqrt(pow(a_p_for_radius.x - circle_positions[i].x,2.0)+pow(a_p_for_radius.y - circle_positions[i].y,2.0));
+        if (mean_angle > min_mean && mean_angle < max_mean && curr_cluster_radius < 0.2){
             is_circle_arr[i] = true;
+        }else{
+            is_circle_arr[i] = false;
         }
+
+
 
     }
 

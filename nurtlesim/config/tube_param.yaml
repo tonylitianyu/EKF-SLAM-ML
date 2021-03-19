@@ -1,5 +1,5 @@
 #The parameters for the cardboard tubes in the sim world
-tube_coor_x: [0.5, 0.9, 0.7, 0.2, 0.6, -0.3, -0.7, -0.3, -0.7, 0.0]      #The x coordinates of the tubes
-tube_coor_y: [0.0, 0.9, 0.4, -0.3, -0.8, -0.6, -0.2, 0.5, 0.7, 1.1]      #The y coordinates of the tubes
+tube_coor_x: [0.5, 0.7, 0.7, 0.2, 0.6, -0.3, -0.7, -0.3, -0.7, 0.0]      #The x coordinates of the tubes
+tube_coor_y: [0.0, 0.7, 0.4, -0.3, -0.8, -0.6, -0.2, 0.5, 0.7, 1.1]      #The y coordinates of the tubes
 tube_radius: 0.0762           #The radius of the tube
 world_border_width: 2.0             #The side length of the world rectangle border
