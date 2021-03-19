@@ -325,7 +325,9 @@ void rigid2d::EKF_SLAM::data_association(std::vector<rigid2d::Vector2D> measures
             ///test
             min_maha_dis = 0.0;
         }
-        if (min_maha_dis < 0.01){
+
+        std::cout << "check for update maha: " << min_maha_dis << std::endl;
+        if (min_maha_dis < 1.0){
             double theta = state(0,0);
             double x = state(1,0);
             double y = state(2,0);

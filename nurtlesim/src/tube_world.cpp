@@ -437,9 +437,6 @@ class TubeWorld{
                 double min_tube_r = std::min(dis1,dis2);
                 return min_tube_r;
 
-                // std::cout << "dis1: " << dis1 << std::endl;
-                // std::cout << "dis2: " << dis2 << std::endl;
-                // std::cout << "============" << std::endl;
 
             }
 
@@ -473,7 +470,7 @@ class TubeWorld{
             scan.ranges.resize(num_readings);
             scan.intensities.resize(num_readings);
 
-            //getLineCircleIntersection(-3.0,0.0,3.0,0.0, scan.range_max);
+            
             double largest_tube_scan_theta = 2*atan2(radius,scan.range_min);
             
             rigid2d::Vector2D trans = {dd.getPosition().x, dd.getPosition().y};
@@ -503,7 +500,7 @@ class TubeWorld{
                 }
                 
 
-                double r = std::min(x_dis_temp/cos(box_ang), y_dis_temp/sin(box_ang));// + range_noise(get_random());
+                double r = std::min(x_dis_temp/cos(box_ang), y_dis_temp/sin(box_ang));
 
 
 
@@ -562,7 +559,7 @@ class TubeWorld{
 
 
                
-                scan.ranges[i] = min_r;
+                scan.ranges[i] = min_r + range_noise(get_random());
                 scan.intensities[i] = 100;
             }
 

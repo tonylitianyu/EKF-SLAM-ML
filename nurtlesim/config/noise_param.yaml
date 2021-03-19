@@ -8,4 +8,4 @@ slip_max: 1.10  #Maximum slip noise
 covar_sensor_x: 0.005  #The x component of covariance matrix for sensor
 covar_sensor_y: 0.005  #The y component of covariance matrix for sensor
 max_visible_dis: 0.7  #maximum distance beyond which tubes are not visible
-range_std: 0.01 #Gaussian noise std for laser scan range 
+range_std: 0.005 #Gaussian noise std for laser scan range 
