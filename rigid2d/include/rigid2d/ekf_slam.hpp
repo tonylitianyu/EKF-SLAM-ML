@@ -35,6 +35,8 @@ namespace rigid2d
             /// \param visible_list - the visibility of each tube
             void measurement(mat sensor_reading, std::vector<bool> visible_list);
 
+            void data_association();
+
             /// \brief get SLAM estimation state in x
             /// \return estimated x position
             double getStateX();

@@ -188,9 +188,9 @@ class Odometer
 };
 
 
-enum class SLAMState {WAIT_SENSOR, INIT, UPDATE};
+enum class SLAMState {INIT, UPDATE};
 
-static SLAMState state_machine = SLAMState::WAIT_SENSOR;
+static SLAMState state_machine = SLAMState::INIT;
 
 /// \brief Organizes sensor reading and update for SLAM
 class SLAM
@@ -199,6 +199,7 @@ class SLAM
     private:
         ros::Timer timer;
         ros::Subscriber fake_sensor_sub;
+        ros::Subscriber scan_sensor_sub;
         ros::Publisher slam_path_pub;
         ros::Publisher slam_tube_pub;
         nav_msgs::Path slam_path;
@@ -217,7 +218,8 @@ class SLAM
 
 
 
-        int n_tubes;
+        int max_n_tubes;
+
 
         bool sensor_update_flag;
         bool state_update_flag;
@@ -237,6 +239,7 @@ class SLAM
         SLAM(ros::NodeHandle nh, std::string odom_frame_id_str, std::string body_frame_id_str, double wheel_base_val, double wheel_radius_val, Odometer & odometer):
         timer(nh.createTimer(ros::Duration(0.1), &SLAM::main_loop, this)),
         fake_sensor_sub(nh.subscribe("fake_sensor", 1000, &SLAM::callback_fake_sensor, this)),
+        scan_sensor_sub(nh.subscribe("scan_sensor", 1000, &SLAM::callback_scan_sensor, this)),
         slam_path_pub(nh.advertise<nav_msgs::Path>("slam_path", 100)),
         slam_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("slam_tube", 10, true)),
         odom_frame_id(odom_frame_id_str),
@@ -244,10 +247,16 @@ class SLAM
         wheel_base(wheel_base_val),
         wheel_radius(wheel_radius_val),
         odometer(odometer),
-        n_tubes(0),
+        max_n_tubes(20),
         sensor_update_flag(false),
         state_update_flag(false)
         {
+            for (int i = 0; i < max_n_tubes; i++){
+                visible_list.push_back(false);  //for measurement
+                known_list.push_back(false);    //for slam visual
+            }
+
+            sensor_reading = zeros<mat>(max_n_tubes*2,1);
         }
 
         /// \brief publish necessary frames
@@ -295,43 +304,36 @@ class SLAM
         /// \param tube - received fake sensor marker array
         void callback_fake_sensor(const visualization_msgs::MarkerArray &tube){
             std::vector<visualization_msgs::Marker> fake_tubes = tube.markers;
-            sensor_reading = zeros<mat>(fake_tubes.size()*2,1);
+            
+            //update sensor reading
 
-            if (fake_tubes.size() != 0 && state_machine == SLAMState::WAIT_SENSOR){
-                //first receive sensor reading, initialize slam!
-                state_machine = SLAMState::INIT;
-                n_tubes = fake_tubes.size();
-                
-                for (int i = 0; i < fake_tubes.size(); i++){
-                    visible_list.push_back(false);
-                    known_list.push_back(false);
-                }
-            }else{
+            
+            for (int i = 0; i < fake_tubes.size(); i++){
+                sensor_reading(i*2,0) = fake_tubes[i].pose.position.x;
+                sensor_reading(i*2+1,0) = fake_tubes[i].pose.position.y;
+                          
+                if (state_update_flag){
+                    //check visibility
+                    if (fake_tubes[i].action == visualization_msgs::Marker::ADD){
+                        
+                        visible_list[i] = true;
+                        
+                        known_list[i] = true;
 
-                //update sensor reading
-
-                for (int i = 0; i < fake_tubes.size(); i++){
-                    sensor_reading(i*2,0) = fake_tubes[i].pose.position.x;
-                    sensor_reading(i*2+1,0) = fake_tubes[i].pose.position.y;
-
-                    if (state_update_flag){
-                        //check visibility
-                        if (fake_tubes[i].action == visualization_msgs::Marker::ADD){
-                            
-                            visible_list[i] = true;
-                            known_list[i] = true;
-                        }else{
-                            visible_list[i] = false;
-                        }
-
-
+                    }else{
+                        visible_list[i] = false;
                     }
 
                 }
+
             }
 
             sensor_update_flag = true;
 
+        }
+
+        void callback_scan_sensor(const visualization_msgs::MarkerArray &tube){
+            std::vector<visualization_msgs::Marker> scan_tubes = tube.markers;
         }
 
         /// \brief publish path for turtle in SLAM state
@@ -376,17 +378,19 @@ class SLAM
         /// \brief publish landmark SLAM state
         void publishSLAMLandmark(){
             mat landmark_state = slam_agent.getStateLandmark();
-            visualization_msgs::MarkerArray slam_tube_marker_array;
-            for (int i = 0; i < n_tubes; i++){
+            visualization_msgs::MarkerArray slam_tube_marker_array;            
+            
+            for (int i = 0; i < known_list.size(); i++){
                 visualization_msgs::Marker slam_tube_marker;
                 slam_tube_marker.header.frame_id = "map";
                 slam_tube_marker.header.stamp = ros::Time::now();
                 slam_tube_marker.ns = "landmark";
-                if (known_list[i]){
+                if (known_list[i] == true){
                     slam_tube_marker.action = visualization_msgs::Marker::ADD;
                 }else{
                     slam_tube_marker.action = visualization_msgs::Marker::DELETE;
                 }
+
 
                 slam_tube_marker.lifetime = ros::Duration(0.1);
 
@@ -420,10 +424,8 @@ class SLAM
 
             switch(state_machine)
             {
-                case SLAMState::WAIT_SENSOR:
-                    break;
                 case SLAMState::INIT:
-                    slam_agent = rigid2d::EKF_SLAM(n_tubes);
+                    slam_agent = rigid2d::EKF_SLAM(max_n_tubes);
                     state_machine = SLAMState::UPDATE;
                     break;
                 case SLAMState::UPDATE:

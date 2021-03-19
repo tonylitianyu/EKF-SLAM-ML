@@ -202,6 +202,63 @@ void rigid2d::EKF_SLAM::measurement(mat sensor_reading, std::vector<bool> visibl
 
 }
 
+void rigid2d::EKF_SLAM::data_association(){
+    // double theta = state(0,0);
+    // double x = state(1,0);
+    // double y = state(2,0);
+
+
+    // double min_maha_dis = 100000.0;
+    // int min_maha_idx = 0;
+
+
+    // std::vector<rigid2d::Vector2D> measures;
+    // for (int j = 0; j < measures.size(); j++){
+    //     for (int i = 0; i < known_landmark.size(); i++){
+            
+    //         mat hj = zeros<mat>(2,1);
+    //         double esti_ri = sqrt(pow(get_tube_x(i) - x, 2.0)+pow(get_tube_y(i) - y, 2.0));
+    //         double esti_phii = atan2(get_tube_y(i) - y, get_tube_x(i) - x) - theta;
+    //         hj(0,0) = esti_ri;
+    //         hj(1,0) = rigid2d::normalize_angle(esti_phii);
+
+
+    //         double delta_x = get_tube_x(i) - x;
+    //         double delta_y = get_tube_y(i) - y;
+    //         double d = pow(delta_x,2) + pow(delta_y, 2);
+
+    //         mat Hj;
+
+    //         mat H_left = {{0, -delta_x/sqrt(d), -delta_y/sqrt(d)}, {-1, delta_y/d, -delta_x/d}};
+    //         mat H_left_mid = zeros<mat>(2, 2*(i+1-1));
+    //         mat H_right_mid = {{delta_x/sqrt(d), delta_y/sqrt(d)}, {-delta_y/d, delta_x/d}};
+    //         mat H_right = zeros<mat>(2, 2*n - 2*(i+1));
+    //         Hj = join_horiz(H_left, H_left_mid);
+    //         Hj = join_horiz(Hj, H_right_mid);
+    //         Hj = join_horiz(Hj, H_right);
+
+
+    //         mat R = zeros<mat>(2,2);
+
+    //         R(0,0) = 0.01;
+    //         R(1,1) = 0.01;
+
+    //         mat psi = Hj*sigma*Hj.t() + R;
+    //         double d = (z_measure - hj).t()*psi.inv()*(z_measure - hj)
+
+    //         if (i == 0){
+    //             mini_maha_dis = d
+    //         }
+
+    //         if (d < mini_maha_dis){
+    //             mini_maha_dis = d;
+    //             mini_maha_idx = i;
+    //         }
+
+    //     }
+    // }
+}
+
 double rigid2d::EKF_SLAM::getStateX(){
     return state(1,0);
 }
