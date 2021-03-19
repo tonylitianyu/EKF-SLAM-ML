@@ -1,8 +1,10 @@
 #include "rigid2d/rigid2d.hpp"
 #include "rigid2d/diff_drive.hpp"
+#include "rigid2d/circle_fitting.hpp"
 #include<iostream>
 
 int main() {
+
     // // double left_angle = 0.025455;
     // // double right_angle = -0.025455;
     // // double left_angle = 0.024242;

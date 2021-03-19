@@ -11,6 +11,7 @@ rigid2d::CircleFitting::CircleFitting(){
 void rigid2d::CircleFitting::clusteringRanges(std::vector<double> ranges){
     point_cluster.clear();
     xy_cluster.clear();
+    r_cluster.clear();
     int num_readings = ranges.size();
     double angle_resolution = 2*rigid2d::PI/(double)num_readings;
     double thres = 0.2;
@@ -87,6 +88,17 @@ void rigid2d::CircleFitting::clusteringRanges(std::vector<double> ranges){
 
 }
 
+std::vector<std::vector<double>> rigid2d::CircleFitting::get_point_cluster(){
+    return point_cluster;
+}
+
+void rigid2d::CircleFitting::set_xy_cluster(std::vector<std::vector<rigid2d::Vector2D>> new_xy_cluster){
+    xy_cluster = new_xy_cluster;
+}
+
+std::vector<double> rigid2d::CircleFitting::get_r_cluster(){
+    return r_cluster;
+}
 
 std::vector<rigid2d::Vector2D> rigid2d::CircleFitting::circleRegression(){
     std::vector<rigid2d::Vector2D> circle_positions;
@@ -210,6 +222,9 @@ std::vector<rigid2d::Vector2D> rigid2d::CircleFitting::circleRegression(){
 
         rigid2d::Vector2D circle_pos = {a+x_mean, b+y_mean};
         circle_positions.push_back(circle_pos);
+
+        
+        r_cluster.push_back(sqrt(R_sqr));
     }
 
     return circle_positions;
@@ -247,11 +262,12 @@ std::vector<rigid2d::Vector2D> rigid2d::CircleFitting::classifyCircle(std::vecto
         double mean_angle = sum_angle/(n_point_in_this_cluster - 2);
         double min_mean = 1.5708;
         double max_mean = 2.3562;
+        std::cout << r_cluster[i] << std::endl;
 
 
-        rigid2d::Vector2D a_p_for_radius = curr_cluster[0];
-        double curr_cluster_radius = sqrt(pow(a_p_for_radius.x - circle_positions[i].x,2.0)+pow(a_p_for_radius.y - circle_positions[i].y,2.0));
-        if (mean_angle > min_mean && mean_angle < max_mean && curr_cluster_radius < 0.2){
+        //rigid2d::Vector2D a_p_for_radius = curr_cluster[0];
+        //double curr_cluster_radius = sqrt(pow(a_p_for_radius.x - circle_positions[i].x,2.0)+pow(a_p_for_radius.y - circle_positions[i].y,2.0));
+        if (mean_angle > min_mean && mean_angle < max_mean && r_cluster[i] < 0.2){
             is_circle_arr[i] = true;
         }else{
             is_circle_arr[i] = false;
@@ -262,17 +278,17 @@ std::vector<rigid2d::Vector2D> rigid2d::CircleFitting::classifyCircle(std::vecto
     }
 
     
-    std::cout << "=======" << std::endl;
+    //std::cout << "=======" << std::endl;
     //remove not circle
     std::vector<rigid2d::Vector2D> clean_circle_positions;
     for (int i = 0; i < xy_cluster.size(); i++){
         if (is_circle_arr[i] == true){
             clean_circle_positions.push_back(circle_positions[i]);
-            std::cout << circle_positions[i] << std::endl;
+            //std::cout << circle_positions[i] << std::endl;
         }
 
     }
-    std::cout << "=======" << std::endl;
+    //std::cout << "=======" << std::endl;
 
     return clean_circle_positions;
     

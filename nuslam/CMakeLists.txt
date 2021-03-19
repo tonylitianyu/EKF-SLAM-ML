@@ -8,6 +8,7 @@ project(nuslam)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+    catch_ros
     nuturtlebot
     rigid2d
     roscpp
@@ -218,3 +219,9 @@ install(TARGETS ${PROJECT_NAME}_landmarks
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+catch_add_test(circle_test tests/circle_tests.cpp)
+
+target_link_libraries(circle_test
+	${catkin_LIBRARIES}
+)
