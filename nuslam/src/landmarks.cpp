@@ -20,6 +20,7 @@
 #include "rigid2d/diff_drive.hpp"
 #include "rigid2d/circle_fitting.hpp"
 #include "visualization_msgs/MarkerArray.h"
+#include "tf2_ros/transform_broadcaster.h"
 #include <cmath>
 
 
@@ -41,7 +42,7 @@ class Landmarks{
         std::vector<rigid2d::Vector2D> circle_pos;
     public:
         /// \brief create the initial setup for the simulator
-        ///
+        /// \param nh - the node handle for ROS
         Landmarks(ros::NodeHandle nh):
         timer(nh.createTimer(ros::Duration(0.01), &Landmarks::main_loop, this)),
         scan_sub(nh.subscribe("scan", 1000, &Landmarks::callback_scan, this)),
@@ -50,7 +51,8 @@ class Landmarks{
 
         }
 
-
+        /// \brief callback function for receving laser scan reading
+        /// \param point - received laser scan range data
         void callback_scan(const sensor_msgs::LaserScan &point)
         {
             state_machine = LMState::WAIT;
@@ -65,6 +67,7 @@ class Landmarks{
 
         }
 
+        /// \brief visualize tubes based on laser scan points
         void show_scan_tube(){
             visualization_msgs::MarkerArray scan_tube_marker_array;
 
@@ -98,6 +101,23 @@ class Landmarks{
             scan_tube_pub.publish(scan_tube_marker_array);
         }
 
+        /// \brief publish laser scan frame
+        void publishLaserFrame(){
+            static tf2_ros::TransformBroadcaster scan_br;
+            geometry_msgs::TransformStamped scan_transform;
+            scan_transform.header.stamp = ros::Time::now();
+            scan_transform.header.frame_id = "turtle";
+            scan_transform.child_frame_id = "laser";
+            scan_transform.transform.translation.x = 0.0;
+            scan_transform.transform.translation.y = 0.0;
+            scan_transform.transform.translation.z = 0.0;
+            scan_transform.transform.rotation.x = 0.0;
+            scan_transform.transform.rotation.y = 0.0;
+            scan_transform.transform.rotation.z = 0.0;
+            scan_transform.transform.rotation.w = 1.0;
+            scan_br.sendTransform(scan_transform);
+        }
+
 
 
 
@@ -110,6 +130,7 @@ class Landmarks{
                     state_machine = LMState::WAIT;
                     break;
                 case LMState::WAIT:
+                    publishLaserFrame();
                     break;
                 case LMState::UPDATE:
                     circle_pos = cf.approxCirclePositions(ranges_arr);

@@ -2,7 +2,6 @@
 #include<iostream>
 
 
-
 rigid2d::DiffDrive::DiffDrive(double wheel_base, double wheel_radius){
     wheel_b = wheel_base;
     wheel_r = wheel_radius;

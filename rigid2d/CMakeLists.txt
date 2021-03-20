@@ -126,10 +126,12 @@ ${catkin_INCLUDE_DIRS}
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
-  src/diff_drive.cpp
-  src/rigid2d.cpp
-  src/ekf_slam.cpp
   src/circle_fitting.cpp
+  src/diff_drive.cpp
+  src/ekf_slam.cpp
+  src/rigid2d.cpp
+  
+  
 )
 
 ## Add cmake target dependencies of the library
@@ -174,7 +176,7 @@ target_link_libraries(${PROJECT_NAME}_fake_turtle
   ${PROJECT_NAME}
 )
 
-target_link_libraries(rigid2d
+target_link_libraries(${PROJECT_NAME}
   armadillo
 )
 

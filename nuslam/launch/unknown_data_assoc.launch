@@ -1,18 +1,26 @@
 <launch>
     <arg name="robot" default="localhost" doc="the hostname of the turtlebot" />
-    <machine name="turtlebot" address="$(arg robot)" env-loader="/home/ubuntu/loader.sh" user="ubuntu" />
-    <rosparam command="load" file="$(find rigid2d)/config/fake_turtle_param.yaml" />
-    <rosparam command="load" file="$(find nurtlesim)/config/noise_param.yaml" />
-    <rosparam command="load" file="$(find nurtlesim)/config/tube_param.yaml" />
-    <param name="robot_description" command="$(find xacro)/xacro $(find nuturtle_description)/urdf/turtlebot3_burger.urdf.xacro" />
 
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+    <group if="$(eval arg('robot')=='localhost')" >
+        <rosparam command="load" file="$(find rigid2d)/config/fake_turtle_param.yaml" />
+        <rosparam command="load" file="$(find nurtlesim)/config/noise_param.yaml" />
+        <rosparam command="load" file="$(find nurtlesim)/config/tube_param.yaml" />
+        <param name="robot_description" command="$(find xacro)/xacro $(find nuturtle_description)/urdf/turtlebot3_burger.urdf.xacro" />
 
-    <node name="unknown_data_assoc" pkg="nuslam" type="unknown_data_assoc" />
-    <node name="landmarks" pkg="nuslam" type="landmarks" />
+        <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
-    <node name="tube_world" pkg="nurtlesim" type="tube_world" />
-    <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="turtlebot3_teleop_keyboard"  output="screen" />
+        <node name="unknown_data_assoc" pkg="nuslam" type="unknown_data_assoc" />
+        <node name="landmarks" pkg="nuslam" type="landmarks"/>
 
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nuslam)/config/unknown_data_assoc.rviz"/>
+        <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="turtlebot3_teleop_keyboard"  output="screen" />
+
+        <node name="tube_world" pkg="nurtlesim" type="tube_world" />
+        <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nuslam)/config/unknown_data_assoc.rviz"/>
+    </group>
+
+    <group unless="$(eval arg('robot')=='boba.local')" >
+        <machine name="turtlebot" address="$(arg robot)" env-loader="/home/ubuntu/loader.sh" user="ubuntu" />
+
+    </group>
+
 </launch>

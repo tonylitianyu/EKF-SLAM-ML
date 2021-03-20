@@ -25,7 +25,7 @@
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find rigid2d)/config/fake_turtle.rviz"/>
 
 
-    <node name="turtle_interface" pkg="nuturtle_robot" type="turtle_interface" machine="turtlebot" />
+    <node name="turtle_interface" pkg="nuturtle_robot" type="turtle_interface" machine="turtlebot" output="screen" />
 
 
 

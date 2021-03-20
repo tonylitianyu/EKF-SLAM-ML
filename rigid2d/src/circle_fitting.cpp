@@ -31,7 +31,7 @@ void rigid2d::CircleFitting::clusteringRanges(std::vector<double> ranges){
         if ((fabs(ranges[i] - ranges[i-1]) < thres) && (i != (num_readings - 1))){
             
         }else{
-            if (curr_cluster.size() > 3){
+            if (curr_cluster.size() > 6){
                 point_cluster.push_back(curr_cluster);
                 xy_cluster.push_back(xy_curr_cluster);
             }

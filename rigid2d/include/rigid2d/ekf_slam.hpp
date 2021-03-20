@@ -35,6 +35,9 @@ namespace rigid2d
             /// \param visible_list - the visibility of each tube
             void measurement(mat sensor_reading, std::vector<bool> visible_list, std::vector<bool> known_list);
 
+            /// \brief unknown data association and correction update
+            /// \param measures - new measurement with unknown data association
+            /// \param known_list - the tubes that have seen
             void data_association(std::vector<rigid2d::Vector2D> measures, std::vector<bool> &known_list);
 
             /// \brief get SLAM estimation state in x
@@ -71,7 +74,15 @@ namespace rigid2d
             /// \return estimated y position of the landmark
             double get_tube_y(int m);
 
+            /// \brief initialize a landmark with measurement
+            /// \param measure measurement for new landmark
+            /// \param i the state index for this landmark
             void initialize_landmark(rigid2d::Vector2D measure,int i);
+
+            /// \breif calculate mahalanobis distance
+            /// \param jth_measure the coming measurement
+            /// \param ith_tube the tube state at i
+            /// \return mahalanobis distance
             double calculate_maha_dis(rigid2d::Vector2D jth_measure, int ith_tube);
 
             

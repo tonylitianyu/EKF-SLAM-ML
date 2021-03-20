@@ -21,6 +21,7 @@
 ///     robot_truth_marker_pub (visualization_msgs::Marker):  Publishes the ground truth location of the robot
 ///     path_pub (nav_msgs::Path):  Publishes the ground truth path of the robot
 ///     fake_tube_pub (visualization_msgs::MarkerArray):  Publishes the sensor reading location of the tubes
+///     scan_pub (sensor_msgs::LaserScan):  Publishes laser scan ranges
 /// SUBSCRIBES:
 ///     vel_sub (geometry_msgs::Twist): Subscribes to the velocity control command
 
@@ -412,7 +413,13 @@ class TubeWorld{
             fake_tube_pub.publish(fake_tube_marker_array);
         }
 
-
+        /// \brief find the disance of the circle and line intersection closest to the turtle
+        /// \param x1 turtle x position
+        /// \param y1 turtle y position
+        /// \param x2 laser scan point x position
+        /// \param y2 laser scan point y position
+        /// \param laser_max_range maximum laser scan range
+        /// \return the disance of the circle and line intersection closest to the turtle
         double getLineCircleIntersection(double x1, double y1, double x2, double y2, double laser_max_range){
             
             double dx = x2 - x1;
@@ -443,6 +450,7 @@ class TubeWorld{
             return laser_max_range;
         }
 
+        /// \brief publish laser scan ranges
         void publishScan(){
             unsigned int num_readings = 360;
             double ranges[num_readings];

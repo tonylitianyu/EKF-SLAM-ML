@@ -54,6 +54,8 @@
   <build_depend>nuturtlebot</build_depend>
   <build_depend>rigid2d</build_depend>
   <build_depend>visualization_msgs</build_depend>
+  <build_depend>catch_ros</build_depend>
+  
 
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>nuturtlebot</build_export_depend>
@@ -68,6 +70,7 @@
   <exec_depend>turtlebot3_teleop</exec_depend>
   <exec_depend>rviz</exec_depend>
   <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>hls_lfcd_lds_driver</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

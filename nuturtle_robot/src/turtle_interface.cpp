@@ -169,7 +169,6 @@ class TurtleInterface
         /// \brief The main control loop state machine
         void main_loop(const ros::TimerEvent &)
         {
-
             if (wheel_pub_flag)
             {
                 publishWheelCommand();
@@ -225,6 +224,7 @@ class TurtleInterface
 
 int main(int argc, char **argv)
 {
+
     ros::init(argc, argv, "turtle_interface");
     ros::NodeHandle n;
 
@@ -264,7 +264,6 @@ int main(int argc, char **argv)
     {
         ROS_ERROR("Unable to get param 'wheel_radius'");
     }
-
 
     TurtleInterface interface = TurtleInterface(n, left_wheel_joint, right_wheel_joint, wheel_base, wheel_radius);
     ros::spin();

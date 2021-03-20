@@ -11,9 +11,12 @@
 /// PUBLISHES:
 ///     odom_pub (nav_msgs::Odometry): Publishes the robot updated odometry
 ///     odom_path_pub (nav_msgs::Path):  Publishes the odometry path
+///     slam_path_pub (nav_msgs::Path):  Publishes the slam path
+///     slam_tube_pub (visualization_msgs::MarkerArray): Publishes the slam estimated tubes
 /// SUBSCRIBES:
 ///     joint_state_sub (sensor_msgs::JointState): Subscribes to the current wheel joint angle
-
+///     fake_sensor_sub (visualization_msgs::MarkerArray): Fake sensor measurements tubes
+///     scan_sensor_sub (visualization_msgs::MarkerArray): Scan sensor measurements tubes
 
 
 #include "ros/ros.h"
@@ -240,7 +243,6 @@ class SLAM
         /// \param odometer - The odometer object for getting the current twist
         SLAM(ros::NodeHandle nh, std::string odom_frame_id_str, std::string body_frame_id_str, double wheel_base_val, double wheel_radius_val, Odometer & odometer):
         timer(nh.createTimer(ros::Duration(0.1), &SLAM::main_loop, this)),
-        fake_sensor_sub(nh.subscribe("fake_sensor", 1000, &SLAM::callback_fake_sensor, this)),
         scan_sensor_sub(nh.subscribe("scan_sensor", 1000, &SLAM::callback_scan_sensor, this)),
         slam_path_pub(nh.advertise<nav_msgs::Path>("slam_path", 100)),
         slam_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("slam_tube", 10, true)),
@@ -302,38 +304,8 @@ class SLAM
         }
 
 
-        /// \brief callback function for receving fake sensor reading
-        /// \param tube - received fake sensor marker array
-        void callback_fake_sensor(const visualization_msgs::MarkerArray &tube){
-            std::vector<visualization_msgs::Marker> fake_tubes = tube.markers;
-            
-            //update sensor reading
-
-            
-            // for (int i = 0; i < fake_tubes.size(); i++){
-            //     sensor_reading(i*2,0) = fake_tubes[i].pose.position.x;
-            //     sensor_reading(i*2+1,0) = fake_tubes[i].pose.position.y;
-                          
-            //     if (state_update_flag){
-            //         //check visibility
-            //         if (fake_tubes[i].action == visualization_msgs::Marker::ADD){
-                        
-            //             visible_list[i] = true;
-                        
-            //             known_list[i] = true;
-
-            //         }else{
-            //             visible_list[i] = false;
-            //         }
-
-            //     }
-
-            // }
-
-            // sensor_update_flag = true;
-
-        }
-
+        /// \brief callback function for receving scan sensor reading
+        /// \param tube - received scan sensor marker array
         void callback_scan_sensor(const visualization_msgs::MarkerArray &tube){
             std::vector<visualization_msgs::Marker> scan_tubes = tube.markers;
             scan_measures.clear();
