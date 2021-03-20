@@ -2,12 +2,14 @@
     <arg name="simulate" default="true" doc="should run in simulation or in real turtle" />
     
     <group if="$(arg simulate)">
+        <rosparam param="turtle_frame_id">turtle</rosparam>
         <include file="$(find nurtlesim)/launch/tube_world.launch" />
         <node name="landmarks" pkg="nuslam" type="landmarks"/>
     </group>
 
 
     <group unless="$(arg simulate)">
+        <rosparam param="turtle_frame_id">base_footprint</rosparam>
         <machine name="turtlebot" address="boba.local" env-loader="/home/ubuntu/loader.sh" user="ubuntu" />
         <node name="hlds_laser_publisher" pkg="hls_lfcd_lds_driver" type="hlds_laser_publisher" machine="turtlebot" />
         <node name="landmarks" pkg="nuslam" type="landmarks" machine="turtlebot"/>

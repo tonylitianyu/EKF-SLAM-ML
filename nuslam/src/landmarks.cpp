@@ -40,13 +40,17 @@ class Landmarks{
         rigid2d::CircleFitting cf;
         std::vector<double> ranges_arr;
         std::vector<rigid2d::Vector2D> circle_pos;
+
+        std::string turtle_frame_id;
     public:
         /// \brief create the initial setup for the simulator
         /// \param nh - the node handle for ROS
-        Landmarks(ros::NodeHandle nh):
+        /// \param turtle_frame_id - the frames for displaying scan tube is different in actual turtle and simulation
+        Landmarks(ros::NodeHandle nh, std::string turtle_frame_id):
         timer(nh.createTimer(ros::Duration(0.01), &Landmarks::main_loop, this)),
         scan_sub(nh.subscribe("scan", 1000, &Landmarks::callback_scan, this)),
-        scan_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("scan_sensor", 10, true))
+        scan_tube_pub(nh.advertise<visualization_msgs::MarkerArray>("scan_sensor", 10, true)),
+        turtle_frame_id(turtle_frame_id)
         {
 
         }
@@ -74,7 +78,7 @@ class Landmarks{
             for (int j = 0; j < circle_pos.size(); j++){
 
                 visualization_msgs::Marker scan_tube_marker;
-                scan_tube_marker.header.frame_id = "turtle";
+                scan_tube_marker.header.frame_id = turtle_frame_id;
                 scan_tube_marker.header.stamp = ros::Time::now();
                 scan_tube_marker.ns = "scan";
                 scan_tube_marker.lifetime = ros::Duration(0.1);
@@ -106,7 +110,7 @@ class Landmarks{
             static tf2_ros::TransformBroadcaster scan_br;
             geometry_msgs::TransformStamped scan_transform;
             scan_transform.header.stamp = ros::Time::now();
-            scan_transform.header.frame_id = "turtle";
+            scan_transform.header.frame_id = turtle_frame_id;
             scan_transform.child_frame_id = "laser";
             scan_transform.transform.translation.x = 0.0;
             scan_transform.transform.translation.y = 0.0;
@@ -130,9 +134,10 @@ class Landmarks{
                     state_machine = LMState::WAIT;
                     break;
                 case LMState::WAIT:
-                    publishLaserFrame();
+                    
                     break;
                 case LMState::UPDATE:
+                    publishLaserFrame();
                     circle_pos = cf.approxCirclePositions(ranges_arr);
                     show_scan_tube();
                     break;
@@ -153,9 +158,18 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "fake_turtle");
     ros::NodeHandle n;
-    
 
-    Landmarks lm = Landmarks(n);
+    std::string turtle_frame_id;
+    
+    if (n.getParam("turtle_frame_id", turtle_frame_id))
+    {
+        ROS_INFO("turtle_frame_id: %s", turtle_frame_id.c_str());
+    }else
+    {
+        ROS_ERROR("Unable to get param 'turtle_frame_id'");
+    }
+
+    Landmarks lm = Landmarks(n, turtle_frame_id);
     ros::spin();
 
 

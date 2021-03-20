@@ -5,6 +5,7 @@
         <rosparam command="load" file="$(find rigid2d)/config/fake_turtle_param.yaml" />
         <rosparam command="load" file="$(find nurtlesim)/config/noise_param.yaml" />
         <rosparam command="load" file="$(find nurtlesim)/config/tube_param.yaml" />
+        <rosparam param="turtle_frame_id">turtle</rosparam>
         <param name="robot_description" command="$(find xacro)/xacro $(find nuturtle_description)/urdf/turtlebot3_burger.urdf.xacro" />
 
         <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
@@ -18,9 +19,23 @@
         <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nuslam)/config/unknown_data_assoc.rviz"/>
     </group>
 
-    <group unless="$(eval arg('robot')=='boba.local')" >
+    <group if="$(eval arg('robot')=='boba.local')" >
+        <rosparam param="turtle_frame_id">base_footprint</rosparam>
+        <param name="robot_description" command="$(find xacro)/xacro $(find nuturtle_description)/urdf/turtlebot3_burger.urdf.xacro" />
+        <rosparam command="load" file="$(find rigid2d)/config/fake_turtle_param.yaml" />
         <machine name="turtlebot" address="$(arg robot)" env-loader="/home/ubuntu/loader.sh" user="ubuntu" />
-
+        <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+        <node name="landmarks" pkg="nuslam" type="landmarks" machine="turtlebot"/>
+        <node name="hlds_laser_publisher" pkg="hls_lfcd_lds_driver" type="hlds_laser_publisher" machine="turtlebot" />
+        <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nuslam)/config/actual_scan.rviz"/>
+        <node name="unknown_data_assoc" pkg="nuslam" type="unknown_data_assoc" machine="turtlebot" />
+        <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="turtlebot3_teleop_keyboard"  output="screen" />
+        
+        <node name="turtle_interface" pkg="nuturtle_robot" type="turtle_interface" machine="turtlebot" output="screen" />
+        <node pkg="rosserial_python" type="serial_node.py" name="serial_node" machine="turtlebot">
+            <param name="port" value="/dev/ttyACM0"/>
+            <param name="baud" value="115200"/>
+        </node>
     </group>
 
 </launch>
