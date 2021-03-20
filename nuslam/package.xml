@@ -71,6 +71,8 @@
   <exec_depend>rviz</exec_depend>
   <exec_depend>visualization_msgs</exec_depend>
   <exec_depend>hls_lfcd_lds_driver</exec_depend>
+  <exec_depend>nuturtle_robot</exec_depend>
+  <exec_depend>rosserial_python</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
