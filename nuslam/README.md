@@ -137,10 +137,10 @@ Visualization Elements:
 ### Experiment Results
 
 Position Comparison
-Path Type | x (m) | y(m) | z(m) |
+Path Type | x (m) | y(m) | z(m) | theta (rad) |
 --- | --- | --- | --- |
-Odom   | -0.016 | 0.698  | 0.0 |
-Slam   | 0.1684| -0.02185 | 0.0 |
+Odom   | -0.016 | 0.698  | -3.012 | 
+Slam   | 0.1684| -0.02185 | -0.843 | 
 
 ### Video
 https://youtu.be/zhZ7v61weMo
