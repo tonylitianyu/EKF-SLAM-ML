@@ -75,7 +75,8 @@ Visualization Elements:
 ### Compare paths (Ground_truth, Odom, and SLAM)
 ![2d](images/slam_tube_2d.png)
 
-
+  
+<br><br />
 # simulator experiment screenshots for unknown data association
 
 In the experiment, the robot drives along closed path in a tube_world with several landmarks with the following environment parameters:
@@ -88,6 +89,36 @@ In the experiment, the robot drives along closed path in a tube_world with sever
 Visualization Elements:
 - Green tubes: Ground truth tube positions
 - Blue tubes: Current SLAM map
+- Yellow tubes: Measurement extracted from laser scan
 - Green path: Ground truth path
 - White path: Odometry path
 - Orange path: SLAM path
+
+
+### Experiment Results
+
+Position Comparison
+Path Type | x (m) | y(m) | z(m) |
+--- | --- | --- | --- |
+Actual | 0.0402 | 0.00288 | 0.0 |
+Odom   | 0.04953 | -0.0437  | 0.0 |
+Slam   | 0.04135| 0.003605 | 0.0 |
+
+Error Percentage Comparing with Actual
+Path Type | x (%) | y (%) | z (%) |
+--- | --- | --- | --- |
+Actual | 0.0 | 0.0 | 0.0 |
+Odom   | 23.2 | 1517.6  | 0.0 |
+Slam   | 2.86 | 25.2 | 0.0 |
+
+
+
+
+### Ground Truth Map
+![uda_truth map](images/unknown_data_association_truth.png)
+
+### SLAM Map
+![uda_slam_map](images/unknown_data_association.png)
+
+### Compare SLAM Map(Blue), Groud Truth(Green), Measurement(Yellow)
+![uda_combined](images/unknown_data_assocation_combine.png)
