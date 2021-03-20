@@ -315,7 +315,7 @@ void rigid2d::EKF_SLAM::data_association(std::vector<rigid2d::Vector2D> measures
         std::cout << "min_maha_dis: " << min_maha_dis << std::endl;
         //visible_list[min_maha_idx] = true;
         
-        if (min_maha_idx == known_count){
+        if (min_maha_idx == known_count && min_maha_idx < n){
             
             initialize_landmark(measures[j], min_maha_idx);
             std::cout << "Initialize new tube at " << min_maha_idx << " to " << get_tube_x(min_maha_idx) << std::endl;
