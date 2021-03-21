@@ -139,14 +139,14 @@ Visualization Elements:
 Position Comparison
 Path Type | x (m) | y(m) | theta (rad) |
 --- | --- | --- | --- |
-Odom   | -0.016 | 0.698  | -3.012 | 
-Slam   | 0.1684| -0.02185 | -0.843 | 
+Odom   | -0.2845 | -0.38196  | 2.3296567 | 
+Slam   | 0.2687| -0.19816 | -0.9327513 | 
 
 ### Video
-https://youtu.be/zhZ7v61weMo
+https://youtu.be/E4lHP60pjr8
 
 ### Screeshot from rviz
 
-The result does not look good. However, the SLAM estimate is way better than the odomometry.
+The SLAM estimate is way better than the odomometry.
 
-![actual](images/actual_slam1.png)
+![actual](images/actual_slam.png)
