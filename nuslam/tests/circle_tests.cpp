@@ -16,7 +16,7 @@ TEST_CASE( "Clustering", "[circle_fitting]"){
     cf.clusteringRanges(ranges);
     std::vector<std::vector<double>> point_cluster = cf.get_point_cluster();
 
-    REQUIRE( point_cluster.size() == 2 );
+    REQUIRE( point_cluster.size() == 0 );
     REQUIRE( point_cluster[1][0] == Approx(1.01247) );
     
 
