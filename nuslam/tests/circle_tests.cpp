@@ -8,15 +8,14 @@ using namespace rigid2d;
 TEST_CASE( "Clustering", "[circle_fitting]"){
 
 
-    std::vector<double> ranges{0.464083, 0.450519, 0.441809, 0.435588, 0.431033, 0.427749, 0.42552, 0.4238, 0.424225,
-                                    0.42552, 0.427749, 0.431033, 0.435588, 0.441809, 0.450519, 0.464083, 1.01247,
-                                    1.01543, 1.01872, 1.02234, 1.0263, 1.03061};
+    std::vector<double> ranges{0.713136, 0.682084, 0.668864, 0.660664, 0.65551, 0.652665, 0.651814, 0.652875,0.655952,0.661391,0.670004,0.684042, 1.01247,
+                                    1.01543, 1.01872, 1.02234, 1.0263, 1.03061,1.04061,1.05061,1.06061};
     CircleFitting cf = CircleFitting();
 
     cf.clusteringRanges(ranges);
     std::vector<std::vector<double>> point_cluster = cf.get_point_cluster();
-
-    REQUIRE( point_cluster.size() == 0 );
+    std::cout << point_cluster.size() << std::endl;
+    REQUIRE( point_cluster.size() == 2 );
     REQUIRE( point_cluster[1][0] == Approx(1.01247) );
     
 
@@ -65,7 +64,7 @@ TEST_CASE( "Circle Regression Test 2", "[circle_fitting]"){
 
 TEST_CASE( "Circle Classification", "[circle_fitting]"){
     std::vector<double> ranges{0.713136, 0.682084, 0.668864, 0.660664, 0.65551, 0.652665, 0.651814, 0.652875,0.655952,0.661391,0.670004,0.684042, 1.01247,
-                                    1.01543, 1.01872, 1.02234, 1.0263, 1.03061};
+                                    1.01543, 1.01872, 1.02234, 1.0263, 1.03061,1.04061,1.05061,1.06061};
     CircleFitting cf = CircleFitting();
 
     cf.clusteringRanges(ranges);

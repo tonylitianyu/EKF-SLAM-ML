@@ -38,6 +38,7 @@ void rigid2d::CircleFitting::clusteringRanges(std::vector<double> ranges){
             curr_cluster.clear();
             xy_curr_cluster.clear();
         }  
+        
         curr_cluster.push_back(ranges[i]);
 
         double xi = ranges[i]*cos(rigid2d::normalize_angle(i*angle_resolution));
@@ -47,7 +48,6 @@ void rigid2d::CircleFitting::clusteringRanges(std::vector<double> ranges){
 
         
     }
-
 
 
     //check if the last and the first are the same cluster
@@ -69,6 +69,7 @@ void rigid2d::CircleFitting::clusteringRanges(std::vector<double> ranges){
         xy_cluster.pop_back();
     }
 
+    std::cout << point_cluster.size() << std::endl;
 
     if (test_flag){
         int counter = 0;

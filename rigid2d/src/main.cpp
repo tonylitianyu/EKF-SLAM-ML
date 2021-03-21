@@ -5,6 +5,15 @@
 
 int main() {
 
+    // std::vector<double> ranges{0.713136, 0.682084, 0.668864, 0.660664, 0.65551, 0.652665, 0.651814, 0.652875,0.655952,0.661391,0.670004,0.684042, 1.01247,
+    //                                 1.01543, 1.01872, 1.02234, 1.0263, 1.03061,1.04061,1.05061,1.06061};
+    // rigid2d::CircleFitting cf = rigid2d::CircleFitting();
+
+    // cf.clusteringRanges(ranges);
+    // std::vector<std::vector<double>> point_cluster = cf.get_point_cluster();
+    // std::cout << point_cluster.size() << std::endl;
+
+
     // // double left_angle = 0.025455;
     // // double right_angle = -0.025455;
     // // double left_angle = 0.024242;
