@@ -97,6 +97,8 @@ Visualization Elements:
 
 ### Experiment Results
 
+The SLAM path is always following the actual path while the odom is off, proving that SLAM is working.
+
 Position Comparison
 Path Type | x (m) | y(m) | z(m) |
 --- | --- | --- | --- |
@@ -122,3 +124,29 @@ Slam   | 2.86 | 25.2 | 0.0 |
 
 ### Compare SLAM Map(Blue), Groud Truth(Green), Measurement(Yellow)
 ![uda_combined](images/unknown_data_assocation_combine.png)
+
+
+<br><br />
+# Actual Turtlebot experiment
+
+Visualization Elements:
+- Blue tubes: Current SLAM map
+- White path: Odometry path
+- Orange path: SLAM path
+
+### Experiment Results
+
+Position Comparison
+Path Type | x (m) | y(m) | theta (rad) |
+--- | --- | --- | --- |
+Odom   | -0.016 | 0.698  | -3.012 | 
+Slam   | 0.1684| -0.02185 | -0.843 | 
+
+### Video
+https://youtu.be/zhZ7v61weMo
+
+### Screeshot from rviz
+
+The result does not look good. However, the SLAM estimate is way better than the odomometry.
+
+![actual](images/actual_slam1.png)
