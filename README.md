@@ -1,4 +1,4 @@
-# ME495 Sensing, Navigation and Machine Learning For Robotics
+# Landmark-based EKF-SLAM with Machine Learning from Scratch
 * Tianyu Li
 * Winter 2021
 # Package List
