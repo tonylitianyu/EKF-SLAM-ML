@@ -12,3 +12,26 @@ This repository consists of several ROS packages
 - nuturtle_robot - Provides interface and interaction with turtlebot hardware
 - nurtlesim - Creates kinematic simulation for a diff drive robot
 - nuslam - Runs the Extended Kalman Filter SLAM
+
+# Dependencies
+```
+nuturtlebot (for urdf)
+https://github.com/ME495-Navigation/nuturtlebot.git
+
+catch_ros (for testing)
+https://github.com/AIS-Bonn/catch_ros.git
+```
+
+# Launch
+
+To run the SLAM in rviz with known data association
+```
+roslaunch nuslam slam.launch
+```
+
+To run the SLAM in rviz with unknown data association
+```
+roslaunch nuslam unknown_data_assoc.launch
+```
+
+(More)
