@@ -1,6 +1,9 @@
 # Landmark-based EKF-SLAM with Machine Learning from Scratch
 * Tianyu Li
-* Winter 2021
+* Started Winter 2021
+
+* For project description, please visit [project link](http://imtianyuli.com/projects/2021/10/23/ekfslam.html)
+
 # Package List
 This repository consists of several ROS packages
 - nuturtle_description - Adapts the model of turtlebot3 for our needs and display it in rviz
